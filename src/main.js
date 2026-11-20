@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
-import { attachWheelPivot, spinWheel } from './vehicles/wheel-rig.js';
+import { attachWheelPivot, extractMergedWheelComponents, spinWheel } from './vehicles/wheel-rig.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -537,9 +537,18 @@ function collectVehicleWheels(root, routeAxis, asset, wheelLayout) {
     return attachWheelPivot(root, wheelNode, radius);
   }).filter(Boolean);
 
-  // Van and Bus assets are single merged meshes, so they do not expose
-  // independent tyre nodes. Their wheel layout is explicitly authored per asset.
+  // Van and Bus have no named wheel nodes, but their indexed GLB geometry
+  // contains four disconnected tyre/rim groups. Extract their original parts
+  // before using the authored fallback wheel layout.
   if (wheels.length === 0 && wheelLayout) {
+    const bodyMeshes = [];
+    root.traverse((object) => {
+      if (object.isMesh) bodyMeshes.push(object);
+    });
+    if (bodyMeshes.length === 1) {
+      const extracted = extractMergedWheelComponents(root, bodyMeshes[0]);
+      if (extracted.length === 4) return extracted;
+    }
     return createFallbackVehicleWheels(root, wheelLayout);
   }
   return wheels;
