@@ -531,7 +531,7 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
   const { inner, baseY, floorHeight, storeys, wall } = plan;
   const wallHeight = floorHeight - plan.slab;
   const frontZ = frontSide > 0 ? plan.bounds.maxZ - wall / 2 : plan.bounds.minZ + wall / 2;
-  const backZ = plan.bounds.minZ + wall / 2;
+  const backZ = frontSide > 0 ? plan.bounds.minZ + wall / 2 : plan.bounds.maxZ - wall / 2;
   const leftX = plan.bounds.minX + wall / 2;
   const rightX = plan.bounds.maxX - wall / 2;
 
