@@ -57,3 +57,14 @@ test('swept movement cannot tunnel through a thin obstacle', () => {
   assert.ok(result.x <= obstacle.minX - 0.3 + 1e-8);
   assert.ok(result.x >= 0);
 });
+
+test('swept movement stays on the safe side until it can slide around an obstacle', () => {
+  const obstacle = { minX: 1, maxX: 1.2, minZ: -1, maxZ: 1 };
+  const result = resolveAxisMovement(
+    { x: 0, z: 0 },
+    { x: 3, z: 0 },
+    (x, z) => !circleIntersectsAabb(x, z, 0.3, obstacle)
+  );
+  assert.ok(result.x <= obstacle.minX - 0.3 + 1e-8);
+  assert.equal(result.z, 0);
+});
