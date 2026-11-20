@@ -53,7 +53,7 @@ export function validateWorldConfig(config, assetManifest) {
       if (!definition || !checkVector3(definition.position, `Street ${key} position`)) continue;
       checkSize2(definition.size, `Street ${key} size`);
     }
-    for (const key of ['sidewalk', 'curb', 'gardens']) {
+    for (const key of ['sidewalk', 'curb']) {
       const definition = config.street[key];
       if (!definition || !Object.values(definition).every(Number.isFinite)) add(`Street ${key} dimensions are invalid.`);
     }
@@ -69,9 +69,15 @@ export function validateWorldConfig(config, assetManifest) {
         !positive(crossing.width) || !positive(crossing.depth)) {
       add('Street crosswalk configuration is invalid.');
     }
-    if (!config.street.manhole || !checkVector3(config.street.manhole.position, 'Manhole position') ||
-        !positive(config.street.manhole.radius)) add('Manhole configuration is invalid.');
+    if (config.street.manhole && (!checkVector3(config.street.manhole.position, 'Manhole position') ||
+        !positive(config.street.manhole.radius))) add('Manhole configuration is invalid.');
   }
+  const entryPath = config.street?.entryPath;
+  if (!entryPath || !positive(entryPath.width) || !positive(entryPath.thickness) ||
+      !positive(entryPath.thresholdDepth)) {
+    add('Street entry path dimensions are invalid.');
+  }
+
   if (!config.streetLights || !Array.isArray(config.streetLights.sides) ||
       !config.streetLights.sides.every((side) => [-1, 1].includes(side)) ||
       !Array.isArray(config.streetLights.positionsX) || !config.streetLights.positionsX.every(Number.isFinite) ||
@@ -149,6 +155,13 @@ export function validateWorldConfig(config, assetManifest) {
       }
       if (collectionName === 'buildings' && item.role === 'house' && ![-1, 1].includes(item.frontSide)) {
         add(`House "${item.id}" must declare frontSide as -1 or 1.`);
+      }
+      if (collectionName === 'buildings' && item.role === 'house') {
+        const architecture = item.architecture;
+        if (!architecture || !Number.isInteger(architecture.storeys) ||
+            architecture.storeys < 2 || architecture.storeys > 5) {
+          add(`House "${item.id}" must declare 2–5 architectural storeys.`);
+        }
       }
       if (collectionName === 'vehicles') {
         if (!Number.isFinite(item.speed) || item.speed <= 0 || ![-1, 1].includes(item.direction)) {

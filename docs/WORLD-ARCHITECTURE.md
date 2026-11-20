@@ -1,140 +1,110 @@
 # District 14 World Architecture
 
-**Product stage:** one continuous urban Free Play / Sandbox world.  
-**Design target:** a robust open-world foundation that is easy to extend, rebalance and author without editing renderer code for every new object.
+**Current stage:** one road, one parcel, one reference house.  
+**Runtime:** Three.js + Vite.  
+**World mode:** Free Play / Sandbox only.
 
 ## Direction
 
-District 14 is being built as a reusable world system, not as a one-off scene. The current city is the first world definition consumed by shared runtime systems. The same runtime should later be able to load additional streets, blocks, interiors and districts without duplicating player, collision, asset or rendering code.
+District 14 is being rebuilt outward from one dimensionally correct house. The project must prove its building scale, street access, interior circulation and window alignment before adding density. A small coherent place is more useful than a large collection of disconnected props.
 
-The only active game mode remains **Free Play / Sandbox**. Rules World, missions, quests, scoring, economy and progression are deliberately out of scope until separately approved.
+Rules World, missions, scoring, economy and progression remain out of scope until separately approved.
 
-## Principles
+## Non-negotiable principles
 
-1. **World data is the authoring layer.** Entity positions, model keys, heights, rotations, routes, collision profiles, spawn and bounds live in world catalogs.
-2. **Stable entity IDs.** Every placed object has a unique ID independent of its model filename or user-facing name.
-3. **Validate before building.** Missing assets, duplicate IDs, invalid transforms, out-of-bounds placements and malformed collision/route data must fail before runtime creates a partial world.
-4. **Explicit collision policy.** Every world entity declares a collision profile or explicitly opts out with `collision: false`. No invisible collision assumptions.
-5. **Runtime systems own behavior.** Configuration describes what exists; runtime modules own loading, animation, movement, interaction, collision and disposal.
-6. **Independent content collections.** Buildings, street props, vegetation, traffic and pedestrians are separate editable collections. Interior layouts and road networks will be moved into dedicated definitions next.
-7. **No premature procedural generation.** First make hand-authored content robust and validated. Add procedural tools only after the data contract is stable.
-8. **Profile before optimizing.** Keep visual quality until measurements show where load time, memory or frame time are being spent.
+1. **The exterior shell is the dimensional source of truth.** Interior clear width, depth, floor height, roof height and façade positions are derived from the loaded GLB transform and its measured bounds.
+2. **Street and building share one coordinate system.** Door anchors, thresholds, entry walkways, sidewalk levels and spawn points are world-space metres.
+3. **A building is structure first.** Floor slabs, partitions, stairwells, corridors, openings, windows and glass are generated before furniture or decoration.
+4. **Vertical circulation must be real.** Stair flights, intermediate landing, upper-floor void and walkable height transition must agree with each other.
+5. **Windows follow the façade.** Recognizable window/glass meshes in the exterior GLB are measured and reused as aperture anchors. A regular façade grid is only a fallback when the asset does not expose identifiable window geometry.
+6. **World data is hierarchical.** District → street → block (when enclosed by multiple streets) → parcel → building → storey → room. Do not spawn unrelated buildings directly into the scene.
+7. **Stable IDs and preflight validation.** Missing assets, duplicate IDs, invalid dimensions and broken hierarchy links must fail before the scene is created.
+8. **No decorative content ahead of the structure.** Furniture, appliances, loose props, trees, NPCs and traffic are intentionally absent from the starter slice.
+9. **No premature procedural city generator.** Add hand-authored parcels and validate each step before introducing procedural placement.
 
-## Current foundation
-
-- `src/world/world-config.js` contains the editable catalog for the current urban map.
-- The catalog holds world bounds, spawn transform, environment, road and sidewalk dimensions, buildings, street props, fences, street lights, trees, vehicles and pedestrians.
-- `src/world/world-validation.js` checks stable IDs, model references, finite transforms, map bounds, collision policies, building roles, route definitions and fence data.
-- `src/main.js` now consumes world definitions to construct buildings, props, vegetation, traffic and pedestrians.
-- Player movement is normalized, swept in small steps and resolved against static and moving collision footprints.
-- Moving actor collisions permit separation when a vehicle or pedestrian enters the player's space, avoiding a permanently trapped player.
-- The current world still uses one active scene and a single global world configuration. It is a first validated authoring layer, not yet a complete streaming open-world engine.
-
-## Intended module boundaries
+## Current starter slice
 
 ```text
-src/
-  app/
-    bootstrap.js
-    GameSession.js
-  core/
-    WorldRuntime.js            # load, activate, pause, unload and dispose a world
-    AssetRegistry.js           # GLB loading, cache, reference count and disposal
-    EntityRegistry.js          # stable IDs and typed entity lookup
-    WorldValidator.js          # schema and cross-reference checks
-    LoadingPipeline.js         # stages, progress and recoverable errors
-    SpatialIndex.js            # queries for local entities/colliders
-  world/
-    world-config.js            # current data-driven world catalog
-    world-validation.js        # current preflight validator
-    worlds/
-      district-14/
-        world.config.js
-        buildings.js
-        streets.js
-        interiors.js
-        vegetation.js
-        traffic.js
-        pedestrians.js
-        zones.js
-  systems/
-    PlayerController.js
-    CollisionSystem.js
-    InteractionSystem.js
-    TrafficSystem.js
-    PedestrianSystem.js
-    EnvironmentSystem.js
-    StreamingSystem.js
-  entities/
-    buildings/
-    props/
-    vehicles/
-    pedestrians/
-  debug/
-    WorldDebugOverlay.js       # bounds, colliders, entity IDs, FPS and draw calls
-    WorldEditor.js             # future placement and collision authoring tools
-  ui/
-    Hud.js
-    LoadingScreen.js
-    PauseScreen.js
+DISTRICT 14
+└── Main street
+    └── Parcel 001
+        └── House 001
+            ├── Stairwell
+            ├── Ground floor
+            │   ├── Entry hall
+            │   ├── Main room
+            │   └── Service room
+            ├── First floor
+            │   ├── Corridor
+            │   ├── Room A
+            │   └── Room B
+            └── Second floor
+                ├── Corridor
+                ├── Room A
+                └── Room B
 ```
 
-This is the target separation. Modules not listed under the current foundation are planned boundaries, not functionality claimed as already implemented. The migration should be incremental and keep the working sandbox playable after every step.
+The current scene intentionally omits every other building and street prop. The model catalogue is retained for later stages, but unused assets are not fetched.
 
-## World data contract
+## Architecture modules
 
-Every placed entity must declare:
+- `src/world/world-config.js`: one street, one parcel, one building, and the authored settlement tree.
+- `src/world/world-validation.js`: validates entity definitions, model references, coordinates, dimensions and collision policies.
+- `src/world/world-hierarchy.js`: checks node types, parent/child rules, unique IDs and consistency between building definitions and storey count.
+- `src/world/building-architecture.js`: measures exterior shell bounds, extracts named façade glass/window geometry, derives the interior plan, generates the floor slabs, walls, stair flights, landings, room partitions, openings, frames and glazing.
+- `src/main.js`: builds the primary road, the reference building, the entry path and the first-person runtime.
 
-- `id`: globally unique, stable identifier.
-- `asset`: exact key from `public/models/manifest.json`.
-- `position`: world-space [x, y, z] in meters.
-- `height` or explicit scale: normalization rule for the source model.
-- `rotationY`: world orientation.
-- `collision`: a typed collision profile, or `false` for intentional no-collision.
-- `zoneId`: future zone/chunk ownership when multi-zone streaming is introduced.
+## Building dimensions and circulation
 
-Specialized data:
+All distances are metres. The current generator clamps dimensions to practical values while staying inside the measured shell:
 
-- Buildings: enterable/backdrop role, explicit entrance anchor(s), exterior footprint and optional linked interior definition.
-- Props and vegetation: collision shape based on physical footprint, not the full visual canopy unless intended.
-- Vehicles: route/waypoints, lane, speed, direction and collision footprint.
-- Pedestrians: walking path, speed, animation policy and collision footprint.
-- Zones: bounds, load radius, unload radius, dependencies and lifecycle policy.
+- exterior wall thickness: 0.14–0.28 m, default 0.18 m;
+- structural floor slab: 0.12–0.22 m, default 0.16 m;
+- clear storey height: normally up to 3.2 m, with a minimum of 2.55 m;
+- stair flights: two opposing flights with a half-floor landing and an opening through upper slabs;
+- stair clear flight width: 0.72–0.88 m;
+- door openings: 0.92–1.12 m wide, up to 2.18 m high;
+- window openings: derived from named GLB meshes when found, otherwise generated at a consistent façade rhythm.
 
-## Open-world scaling path
+The upper-storey slab is cut around the stair core. The walkability check allows the player onto the upper level only through the stair flights and landing, not through the open stairwell void. Height is derived from the player's position along the stair rather than teleporting between floors.
 
-### 1. Validated content authoring
-Move interior layouts, door anchors, room bounds, road networks and environment presets out of `main.js`. The editor-facing catalog must remain the single source of truth.
+These are starter architectural parameters, not a substitute for checking the actual GLB model and in-game proportions. If the measured asset does not provide enough clear space for a safe stair and corridor, building creation fails rather than silently inventing a bigger interior.
 
-### 2. Modular runtime
-Extract asset loading, entity creation, player movement, collision, interaction, vehicle traffic and pedestrian simulation into modules with explicit inputs and lifecycle methods. Avoid hidden cross-module global arrays.
+## Street-to-house relationship
 
-### 3. Spatial model and zones
-Introduce a spatial index and named world zones. Keep today's District 14 as one zone first. Add asynchronous activation/unloading around the player only after zone ownership, object disposal and transition rules are tested. Do not load/unload objects ad hoc based only on distance.
+- The house front is defined in the building's local frame, then rotated into world space.
+- The exterior door anchor uses the measured shell face and its outward normal.
+- The short landing and access path lead to the sidewalk on the same side of the street.
+- The spawn remains on the street side and faces the first reference house.
+- The house footprint is a physical obstruction; the doorway interaction is available from the approach side, not through a side or rear wall.
 
-### 4. Production asset pipeline
-Create a model metadata catalog for physical dimensions, origin/pivot, normalization, collision shape, LOD variants, material policy, source and license/attribution. Validate GLB container integrity and model bounds in CI.
+## Growth order
 
-### 5. Rendering and simulation scale
-Use frustum culling and measured distance policies. Use LOD for far buildings and vegetation. Use instancing only for repeated compatible geometry/materials where profiling shows meaningful draw-call reduction. Three.js documents `InstancedMesh` for repeated geometry and `GLTFLoader` for glTF/GLB assets: [InstancedMesh](https://threejs.org/docs/pages/InstancedMesh.html), [GLTFLoader](https://threejs.org/docs/pages/GLTFLoader.html).
+1. **Reference house:** validate its actual GLB bounds, entry, floors, stairs, windows and glass.
+2. **First neighbouring parcel:** add one adjacent lot with a clear street frontage and a separately measured building.
+3. **Street frontage:** establish setbacks, driveway/footpath widths, parcel boundaries and consistent door alignment.
+4. **Building variety:** add a second building type only after the first house is accepted as the scale reference.
+5. **Block:** add a side street and connect parcels into a meaningful block rather than extending arbitrary rows.
+6. **Neighbourhood:** add services, greenery, traffic and pedestrians only after the street and building geometry is stable.
 
-### 6. Authoring and debug tools
-Add a separate editor/debug layer for selection, transform editing, entity ID inspection, collision visualization, door anchors, zone boundaries, FPS, draw calls and asset state. Do not mix editor controls into the normal player HUD.
+Every growth step adds a node to the hierarchy and a matching validated world definition. Existing geometry is not moved implicitly by adding a new parcel.
 
-## Non-goals for the current stage
+## Verification and limitations
 
-- No Rules World.
-- No missions, quests, score, economy or progression.
-- No forced switch away from Three.js + Vite.
-- No multiplayer or save-game layer before entity ownership and world lifecycle are mature.
-- No large procedural city generator before authored world data, validation and placement tools are reliable.
+Automated tests cover:
+- world configuration and asset references;
+- hierarchy consistency and stable IDs;
+- measured shell bounds including model rotation/scale;
+- floorplate generation and stair height progression;
+- walkability inside the upper stair opening;
+- extraction of identifiable facade window/glass meshes.
 
-## Acceptance criteria for the architecture foundation
+A green build does not prove the visual placement of the supplied GLB model in a real browser session. Final visual inspection must still confirm that the measured model's real entrance, façade and glass correspond to the generated structure.
 
-- Moving or adding an entity is a world-data edit, not a renderer-code edit.
-- Every entity has a stable ID and explicit collision policy.
-- Every model reference resolves against the local manifest.
-- Invalid map data fails before scene spawning.
-- Buildings, street props, vegetation, traffic and pedestrians can be extended independently.
-- The same runtime can host another urban zone without cloning the current game loop.
-- The current sandbox remains the only playable mode until the owner approves another mode.
+## Explicit non-goals
+
+- No furniture, appliances or decorative interior equipment in this stage.
+- No traffic, NPCs, vegetation or scattered street props in the starter slice.
+- No missions, quests, progression, score, economy or Rules World.
+- No framework rewrite or multiplayer layer.
+- No procedural city generation before the authored hierarchy is stable.
