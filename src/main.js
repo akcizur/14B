@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { canOccupy, isInInteractionRange, normalizeMovement, resolveAxisMovement } from './collision.js';
+import { canOccupy, circleIntersectsAabb, isInInteractionRange, normalizeMovement, resolveAxisMovement } from './collision.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -177,7 +177,7 @@ function addAnimatedActor(key, height, position, path, speed, name) {
       action.play();
     }
     mixers.push(mixer);
-    root.rotation.y = Math.PI / 2;
+    root.rotation.y = path.axis === 'z' ? 0 : Math.PI / 2;
     walkers.push({ root, mixer, path, speed, direction: 1, name, colliderHalfWidth: 0.28, colliderHalfDepth: 0.28 });
     return root;
   });
@@ -497,7 +497,7 @@ function getMovingActorColliders() {
     const centerX = vehicle.root.position.x + vehicle.colliderOffsetX;
     const centerZ = vehicle.root.position.z + vehicle.colliderOffsetZ;
     dynamic.push({
-      name: `moving-${vehicle.key}`,
+      name: `moving-${vehicle.id}`,
       minX: centerX - vehicle.colliderHalfWidth,
       maxX: centerX + vehicle.colliderHalfWidth,
       minZ: centerZ - vehicle.colliderHalfDepth,
@@ -516,15 +516,30 @@ function getMovingActorColliders() {
   return dynamic;
 }
 
-function canPlayerOccupy(x, z) {
+function canPlayerOccupy(x, z, previous = null) {
   if (currentInterior) {
     const local = currentInterior.interior.worldToLocal(new THREE.Vector3(x, camera.position.y, z));
     const localBounds = { minX: -3.1, maxX: 3.1, minZ: -1.8, maxZ: 1.8 };
     if (!canOccupy(local.x, local.z, playerRadius, localBounds)) return false;
     return canOccupy(x, z, playerRadius, null, currentInterior.interior.userData.collisionBoxes || []);
   }
+
   const worldBounds = WORLD_CONFIG.bounds;
-  return canOccupy(x, z, playerRadius, worldBounds, [...colliders, ...getMovingActorColliders()]);
+  if (!canOccupy(x, z, playerRadius, worldBounds, colliders)) return false;
+
+  // If a moving actor has entered the player's space, allow movement that
+  // increases separation so the player cannot become permanently trapped.
+  const dynamic = getMovingActorColliders();
+  for (const box of dynamic) {
+    if (!circleIntersectsAabb(x, z, playerRadius, box)) continue;
+    if (!previous || !circleIntersectsAabb(previous.x, previous.z, playerRadius, box)) return false;
+    const centerX = (box.minX + box.maxX) / 2;
+    const centerZ = (box.minZ + box.maxZ) / 2;
+    const before = Math.hypot(previous.x - centerX, previous.z - centerZ);
+    const after = Math.hypot(x - centerX, z - centerZ);
+    if (after <= before) return false;
+  }
+  return true;
 }
 function movePlayer(delta) {
   if (!controls.isLocked || !gameStarted) return;
@@ -546,7 +561,7 @@ function movePlayer(delta) {
   const resolved = resolveAxisMovement(
     { x: previous.x, z: previous.z },
     requested,
-    canPlayerOccupy,
+    (x, z) => canPlayerOccupy(x, z, previous),
     0.16
   );
   camera.position.x = resolved.x;
@@ -666,10 +681,9 @@ async function initWorld() {
   const response = await fetch(MODEL_URL('manifest.json'));
   if (!response.ok) throw new Error(`Cannot load asset manifest (${response.status}).`);
   manifest = await response.json();
+  assertValidWorldConfig(WORLD_CONFIG, manifest);
   addStreetBase();
   buildBackdrop();
-
-  assertValidWorldConfig(WORLD_CONFIG, manifest);
 
   const steps = [
     ['Buildings', async () => {
@@ -681,7 +695,6 @@ async function initWorld() {
     ['Greenery', addTrees],
     ['Traffic', addVehicles],
     ['Pedestrians', addPedestrians]
-  ];
   ];
 
   for (let i = 0; i < steps.length; i += 1) {
