@@ -1,6 +1,6 @@
 # DISTRICT 14 — Remake
 
-Asset-driven Three.js first-person neighborhood designed as one continuous Free Play / Sandbox world. There are no missions, score systems or rule-based game modes in this development stage.
+Asset-driven Three.js first-person urban open world, currently delivered as one continuous Free Play / Sandbox experience. World placement is defined in validated data catalogs so districts, buildings, props, interiors, traffic and pedestrians can be extended independently.
 
 ## Main experience
 
@@ -41,11 +41,17 @@ npm run preview
 
 ## Project layout
 
-- `src/main.js`: scene setup, asset loading, buildings, interiors, actors, interactions and game loop.
-- `src/collision.js`: shared circle-versus-box collision and wall-sliding movement helpers.
+- `src/main.js`: application bootstrap and runtime orchestration.
+- `src/world/world-config.js`: editable world catalog for map geometry, buildings, street props, vegetation, traffic and pedestrians.
+- `src/world/world-validation.js`: validates entity IDs, model references, transforms, collision profiles and routes before scene creation.
+- `src/collision.js`: reusable circle/AABB collision, swept movement, directional interaction and normalized input helpers.
 - `src/styles.css`: HUD, loading, welcome and pause interface.
 - `public/models/`: 68 selected local GLB assets and `manifest.json`.
 - `tests/`: world-system and asset integrity regression tests.
+
+## World architecture
+
+See [World Architecture](docs/WORLD-ARCHITECTURE.md) for the design principles, current data-driven foundation, target module structure and future open-world scaling stages.
 
 ## Current scope
 
