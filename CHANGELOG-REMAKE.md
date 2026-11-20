@@ -9,3 +9,13 @@
 - Kept the original procedural source modules in the repository when applied as an overlay; they are no longer the root entry point.
 
 Validation in the build workspace: 11/11 remake and asset tests passed, and the two new JavaScript modules pass `node --check`. A local Vite production build was not completed because the environment could not reach the npm registry to install Vite.
+
+
+## Free Play sandbox correction pass
+
+- Removed the unavailable City Courier entry point; District 14 is presented as one open sandbox.
+- Normalized diagonal player input and added swept movement collision checks.
+- Added collision footprints for street props, every tree trunk, fence segments and street-light poles.
+- Added simple moving collision footprints for road vehicles and pedestrians.
+- Restricted house interaction to the correct outside side, within range and while looking towards the door.
+- Added regression coverage for movement normalization, swept collision, interaction direction and single-mode scope.
