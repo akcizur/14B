@@ -36,3 +36,12 @@ test('house and pedestrian interactions are selected by proximity, not reticle a
   assert.match(source, /function openNpcDialog\(walker\)/);
   assert.doesNotMatch(source, /isInInteractionRange\(camera\.position, target, forward/);
 });
+
+
+test('fallback vehicle wheels are positioned in normalized root-local space', () => {
+  const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+  assert.match(source, /worldSize\.x \/ scaleX/);
+  assert.match(source, /worldCenter\.x - root\.position\.x/);
+  assert.match(source, /localBounds\.min\.y - root\.position\.y\) \/ scaleY/);
+  assert.match(source, /createFallbackVehicleWheels\(root, height\)/);
+});
