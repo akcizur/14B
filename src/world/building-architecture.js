@@ -45,7 +45,7 @@ export function measureBuildingBounds(buildingRoot) {
   };
 }
 
-export function deriveInteriorPlan(bounds, architecture = {}) {
+export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1) {
   const values = [bounds?.minX, bounds?.maxX, bounds?.minY, bounds?.maxY, bounds?.minZ, bounds?.maxZ];
   if (!values.every(Number.isFinite) ||
       bounds.maxX - bounds.minX < 3.8 ||
@@ -54,6 +54,7 @@ export function deriveInteriorPlan(bounds, architecture = {}) {
     throw new Error('Building bounds are too small or invalid for a multi-storey interior.');
   }
 
+  if (![-1, 1].includes(frontSide)) throw new Error('Building frontSide must be -1 or 1.');
   const width = bounds.maxX - bounds.minX;
   const depth = bounds.maxZ - bounds.minZ;
   const height = bounds.maxY - bounds.minY;
@@ -129,7 +130,7 @@ export function deriveInteriorPlan(bounds, architecture = {}) {
     corridorWidth,
     corridorWallX,
     entryX,
-    entryZ: inner.maxZ - 0.72,
+    entryZ: frontSide > 0 ? inner.maxZ - 0.72 : inner.minZ + 0.72,
     doorWidth: clamp(width * 0.14, 0.92, 1.12),
     doorHeight: Math.min(2.18, floorHeight - 0.55),
     windowWidth,
@@ -412,7 +413,8 @@ function buildFloorPartitions(parent, plan, level, materials, colliders) {
 
 export function buildBuildingInterior(buildingRoot, definition = {}) {
   const bounds = measureBuildingBounds(buildingRoot);
-  const plan = deriveInteriorPlan(bounds, definition.architecture || {});
+  const frontSide = definition.frontSide ?? 1;
+  const plan = deriveInteriorPlan(bounds, definition.architecture || {}, frontSide);
   const origin = buildingRoot.getWorldPosition(new THREE.Vector3());
   const orientation = buildingRoot.getWorldQuaternion(new THREE.Quaternion());
   const interior = new THREE.Group();
@@ -438,7 +440,7 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
   const collidableMeshes = [];
   const { inner, baseY, floorHeight, storeys, wall } = plan;
   const wallHeight = floorHeight - plan.slab;
-  const frontZ = plan.bounds.maxZ - wall / 2;
+  const frontZ = frontSide > 0 ? plan.bounds.maxZ - wall / 2 : plan.bounds.minZ + wall / 2;
   const backZ = plan.bounds.minZ + wall / 2;
   const leftX = plan.bounds.minX + wall / 2;
   const rightX = plan.bounds.maxX - wall / 2;
@@ -504,8 +506,9 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
     (inner.minZ + inner.maxZ) / 2, plan.innerWidth, plan.slab, plan.innerDepth, materials.roof);
 
   const entryPoint = new THREE.Vector3(plan.entryX, plan.baseY, plan.entryZ);
-  const doorPoint = new THREE.Vector3(plan.entryX, plan.baseY, plan.bounds.maxZ + 0.12);
-  const outward = new THREE.Vector3(0, 0, 1).applyQuaternion(orientation).normalize();
+  const doorPoint = new THREE.Vector3(plan.entryX, plan.baseY,
+    frontSide > 0 ? plan.bounds.maxZ + 0.12 : plan.bounds.minZ - 0.12);
+  const outward = new THREE.Vector3(0, 0, frontSide).applyQuaternion(orientation).normalize();
   interior.updateMatrixWorld(true);
   const doorPosition = doorPoint.clone().applyMatrix4(interior.matrixWorld);
 
