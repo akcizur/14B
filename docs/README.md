@@ -13,7 +13,10 @@ Toto je rozcestník technické, stavební a produkční dokumentace. Aktuální 
 3. **[Plán postupného růstu](SETTLEMENT-GROWTH.md)**  
    Etapy od jedné ulice a domu k sousední parcele, uliční frontě, bloku a dalšímu veřejnému prostoru.
 
-4. **[Historický audit Free Play](FREE-PLAY-SANDBOX-PLAN.md)**  
+4. **[Ověření a vydání](VERIFICATION-LOG.md)**  
+   Výsledky CI, rozdíl mezi testy, deployem a vizuální kontrolou a checklist pro přijetí domu.
+
+5. **[Historický audit Free Play](FREE-PLAY-SANDBOX-PLAN.md)**  
    Archivní záznam staršího stavu. Nejde o aktuální implementační checklist.
 
 ## Kde je pravda
