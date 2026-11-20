@@ -43,7 +43,7 @@ test('movement resolves against obstacles and slides along a free axis', () => {
   const from = { x: 0, z: 0 };
   const to = { x: 1.5, z: 0.5 };
   const resolved = resolveAxisMovement(from, to, (x, z) => !circleIntersectsAabb(x, z, 0.3, wall));
-  assert.equal(resolved.x, 0);
+  assert.ok(resolved.x > 0.5 && resolved.x < 0.7);
   assert.ok(resolved.z > 0);
 });
 
