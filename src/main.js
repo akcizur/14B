@@ -6,6 +6,7 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
 import { attachWheelPivot, extractMergedWheelComponents, spinWheel } from './vehicles/wheel-rig.js';
 import { buildBuildingInterior } from './world/building-architecture.js';
+import { assertValidWorldHierarchy } from './world/world-hierarchy.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -201,7 +202,6 @@ function addStreetBase() {
   for (const side of [-1, 1]) {
     addPlane(world, 'sidewalk-' + side, 0, street.sidewalk.y, side * street.sidewalk.z, street.sidewalk.width, street.sidewalk.depth, concrete);
     addBox(world, 'curb-' + side, 0, street.curb.y, side * street.curb.z, street.curb.width, street.curb.height, street.curb.depth, curb);
-    addPlane(world, 'front-garden-' + side, 0, street.gardens.y, side * street.gardens.z, street.gardens.width, street.gardens.depth, grass);
   }
 
   const lanes = street.laneMarkings;
@@ -217,15 +217,17 @@ function addStreetBase() {
     }
   }
 
-  const manholeConfig = street.manhole;
-  const manhole = new THREE.Mesh(
-    new THREE.CylinderGeometry(manholeConfig.radius, manholeConfig.radius, 0.024, 28),
-    makeMaterial(0x343a38, 0.66, 0.45)
-  );
-  manhole.name = 'street-manhole';
-  manhole.position.set(...manholeConfig.position);
-  manhole.receiveShadow = true;
-  world.add(manhole);
+  if (street.manhole) {
+    const manholeConfig = street.manhole;
+    const manhole = new THREE.Mesh(
+      new THREE.CylinderGeometry(manholeConfig.radius, manholeConfig.radius, 0.024, 28),
+      makeMaterial(0x343a38, 0.66, 0.45)
+    );
+    manhole.name = 'street-manhole';
+    manhole.position.set(...manholeConfig.position);
+    manhole.receiveShadow = true;
+    world.add(manhole);
+  }
 }
 
 function addEntryWalkway(house) {
@@ -234,10 +236,13 @@ function addEntryWalkway(house) {
   const normal = house.doorNormal.clone();
   if (Math.abs(normal.z) < 0.75) return;
 
-  const side = Math.sign(normal.z) || 1;
+  // The house sits on the same signed side as its sidewalk. The door normal
+  // must point toward that sidewalk, not toward the opposite side of the road.
+  const side = Math.sign(house.center.z) || -Math.sign(normal.z);
   const sidewalkEdge = side * (sidewalk.z + sidewalk.depth / 2 - 0.06);
   const distance = (sidewalkEdge - house.doorPosition.z) / normal.z;
-  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15) return;
+  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15 ||
+      Math.sign(distance) !== Math.sign(1)) return;
 
   const yaw = Math.atan2(normal.x, normal.z);
   const pathStart = house.doorPosition.clone().addScaledVector(normal, config.thresholdDepth / 2);
@@ -318,6 +323,7 @@ async function addStreetProps() {
   }));
 
   const fenceConfig = WORLD_CONFIG.fences;
+  if (!fenceConfig || fenceConfig.count === 0 || !fenceConfig.sides.length) return;
   const fenceAsset = await loadGLTF(fenceConfig.asset);
   const fenceBase = fenceAsset.scene;
 
@@ -837,6 +843,7 @@ async function initWorld() {
   if (!response.ok) throw new Error(`Cannot load asset manifest (${response.status}).`);
   manifest = await response.json();
   assertValidWorldConfig(WORLD_CONFIG, manifest);
+  assertValidWorldHierarchy(WORLD_CONFIG.hierarchy, WORLD_CONFIG.buildings);
   addStreetBase();
   buildBackdrop();
 
