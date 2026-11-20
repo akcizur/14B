@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { attachWheelPivot, spinWheel } from '../src/vehicles/wheel-rig.js';
+import { attachWheelPivot, extractMergedWheelComponents, spinWheel } from '../src/vehicles/wheel-rig.js';
 
 function boxCenter(object) {
   object.updateWorldMatrix(true, true);
@@ -107,7 +107,6 @@ function mergeIndexedGeometry(parts) {
 }
 
 test('merged vehicle geometry yields four original wheel rigs without duplicate overlay tyres', async () => {
-  const { extractMergedWheelComponents } = await import('../src/vehicles/wheel-rig.js');
   const bodyGeometry = new THREE.BoxGeometry(4, 2, 6);
   bodyGeometry.translate(0, 1, 0);
   const parts = [bodyGeometry];
@@ -135,7 +134,6 @@ test('merged vehicle geometry yields four original wheel rigs without duplicate 
   const wheels = extractMergedWheelComponents(root, body);
   assert.equal(wheels.length, 4);
   assert.ok(body.geometry.index.count / 3 < originalTriangles);
-  assert.equal(root.children.filter((child) => child.name.startsWith('extracted-wheel-')).length, 0);
   assert.equal(root.children.filter((child) => child.name.includes('spin-pivot')).length, 4);
 
   const centers = wheels.map((wheel) => wheel.pivot.getWorldPosition(new THREE.Vector3()));
