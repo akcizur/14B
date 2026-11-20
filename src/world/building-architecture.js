@@ -148,9 +148,9 @@ export function getInteriorWalkHeight(plan, x, z, currentFeetY = plan.baseY) {
   const { stair } = plan;
   const currentLevel = clamp(Math.round((currentFeetY - plan.baseY) / plan.floorHeight), 0, plan.storeys - 1);
   const inStairDepth = z >= stair.minZ - 0.18 && z <= stair.maxZ + stair.landingDepth;
-  const inLaneOne = Math.abs(x - stair.laneOneX) <= stair.flightWidth / 2 + 0.08 &&
+  const inLaneOne = Math.abs(x - stair.laneOneX) <= stair.flightWidth / 2 - 0.04 &&
     z >= stair.minZ && z <= stair.maxZ;
-  const inLaneTwo = Math.abs(x - stair.laneTwoX) <= stair.flightWidth / 2 + 0.08 &&
+  const inLaneTwo = Math.abs(x - stair.laneTwoX) <= stair.flightWidth / 2 - 0.04 &&
     z >= stair.minZ && z <= stair.maxZ;
 
   if (inLaneOne && plan.storeys > 1) {
@@ -186,8 +186,8 @@ export function isInteriorPositionWalkable(plan, x, z, currentFeetY = plan.baseY
 
   const stair = plan.stair;
   const onFlight = (
-    Math.abs(x - stair.laneOneX) <= stair.flightWidth / 2 + radius * 0.2 ||
-    Math.abs(x - stair.laneTwoX) <= stair.flightWidth / 2 + radius * 0.2
+    Math.abs(x - stair.laneOneX) <= stair.flightWidth / 2 - radius * 0.65 ||
+    Math.abs(x - stair.laneTwoX) <= stair.flightWidth / 2 - radius * 0.65
   ) && z >= stair.minZ - 0.08 && z <= stair.maxZ + 0.08;
   const onLanding = z > stair.maxZ - 0.16 && z <= stair.maxZ + stair.landingDepth &&
     x >= stair.minX - 0.08 && x <= stair.maxX + 0.08;
