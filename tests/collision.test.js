@@ -54,6 +54,6 @@ test('swept movement cannot tunnel through a thin obstacle', () => {
     { x: 3, z: 0 },
     (x, z) => !circleIntersectsAabb(x, z, 0.3, obstacle)
   );
-  assert.ok(result.x < obstacle.minX);
+  assert.ok(result.x <= obstacle.minX - 0.3 + 1e-8);
   assert.ok(result.x >= 0);
 });
