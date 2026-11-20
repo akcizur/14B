@@ -6,7 +6,8 @@ import {
   deriveInteriorPlan,
   getInteriorWalkHeight,
   isInteriorPositionWalkable,
-  measureBuildingBounds
+  measureBuildingBounds,
+  measureFacadeOpenings
 } from '../src/world/building-architecture.js';
 
 function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation = Math.PI / 2 } = {}) {
@@ -86,4 +87,35 @@ test('upper floor stair opening allows the stair lanes but blocks the open void'
   assert.equal(isInteriorPositionWalkable(plan, plan.stair.laneOneX, stairZ, floorY), true);
   assert.equal(isInteriorPositionWalkable(plan, gapX, stairZ, floorY), false);
   assert.ok(opening.maxX > opening.minX && opening.maxZ > opening.minZ);
+});
+
+
+test('named exterior GLB window and glass meshes are detected on their real facades', () => {
+  const shell = createShell();
+  const glass = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 1.15, 0.06),
+    new THREE.MeshStandardMaterial({ name: 'Glass' })
+  );
+  glass.name = 'front-window-glazing';
+  glass.position.set(-2.5, 2.1, 4.45);
+  shell.add(glass);
+
+  const sideWindow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.06, 1.2, 1.35),
+    new THREE.MeshStandardMaterial()
+  );
+  sideWindow.name = 'left-window-frame';
+  sideWindow.position.set(-5.95, 5.2, 0.8);
+  shell.add(sideWindow);
+  shell.updateMatrixWorld(true);
+
+  const openings = measureFacadeOpenings(shell);
+  assert.equal(openings.length, 2);
+  assert.ok(openings.some((opening) =>
+    opening.side === 'front' && Math.abs(opening.center + 2.5) < 0.05 &&
+    Math.abs(opening.width - 1.4) < 0.1
+  ));
+  assert.ok(openings.some((opening) =>
+    opening.side === 'left' && Math.abs(opening.center - 0.8) < 0.05
+  ));
 });
