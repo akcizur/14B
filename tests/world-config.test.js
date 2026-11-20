@@ -54,3 +54,13 @@ test('world runtime consumes the data catalog instead of defining placements in 
   assert.match(main, /WORLD_CONFIG\.pedestrians/);
   assert.match(main, /assertValidWorldConfig\(WORLD_CONFIG, manifest\)/);
 });
+
+
+test('pedestrians define local talk interactions and gait reference speeds', () => {
+  assert.ok(WORLD_CONFIG.pedestrians.every((npc) =>
+    npc.interaction?.name && npc.interaction?.text && npc.interaction.radius > 0
+  ));
+  assert.ok(WORLD_CONFIG.pedestrians.every((npc) =>
+    Number.isFinite(npc.animation?.walkSpeed) && npc.animation.walkSpeed > 0
+  ));
+});
