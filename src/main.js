@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { canOccupy, circleIntersectsAabb, isInInteractionRange, normalizeMovement, resolveAxisMovement } from './collision.js';
+import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -22,6 +22,9 @@ const coordinates = document.getElementById('coordinates');
 const locationLabel = document.getElementById('locationLabel');
 const worldState = document.getElementById('worldState');
 const clockLabel = document.getElementById('clock');
+const npcDialog = document.getElementById('npcDialog');
+const npcDialogName = document.getElementById('npcDialogName');
+const npcDialogText = document.getElementById('npcDialogText');
 
 const BASE = import.meta.env.BASE_URL || './';
 const MODEL_URL = (name) => `${BASE}models/${name}`;
@@ -46,6 +49,7 @@ let gameStarted = false;
 let lastToast = 0;
 let lastTime = 0;
 let frameTime = 0;
+let activeNpcDialog = null;
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(WORLD_CONFIG.environment.background);
@@ -166,7 +170,7 @@ async function createAsset(key, options = {}) {
   if (options.parent) options.parent.add(root);
   return { root, animations: gltf.animations || [] };
 }
-function addAnimatedActor(key, height, position, path, speed, name, collision) {
+function addAnimatedActor(key, height, position, path, speed, name, collision, animation, interaction) {
   return createAsset(key, { height, position, parent: world, name }).then(({ root, animations }) => {
     const mixer = new THREE.AnimationMixer(root);
     const walkClip = animations.find((clip) => /walk|walking|run/i.test(clip.name));
@@ -174,11 +178,14 @@ function addAnimatedActor(key, height, position, path, speed, name, collision) {
     const activeClip = walkClip || idleClip || animations[0];
     if (activeClip) {
       const action = mixer.clipAction(activeClip);
+      if (activeClip === walkClip) {
+        action.setEffectiveTimeScale(animationTimeScale(speed, animation?.walkSpeed ?? 1.2));
+      }
       action.play();
     }
     mixers.push(mixer);
     root.rotation.y = path.axis === 'z' ? 0 : Math.PI / 2;
-    walkers.push({ root, mixer, path, speed, direction: 1, name, colliderHalfWidth: collision.halfWidth, colliderHalfDepth: collision.halfDepth });
+    walkers.push({ root, mixer, path, speed, direction: 1, name, interaction, colliderHalfWidth: collision.halfWidth, colliderHalfDepth: collision.halfDepth });
     return root;
   });
 }
@@ -425,6 +432,81 @@ function addStreetLights() {
   }
 }
 
+function createFallbackVehicleWheels(root, height) {
+  const originalYaw = root.rotation.y;
+  root.rotation.y = 0;
+  root.updateWorldMatrix(true, true);
+  const localBounds = new THREE.Box3().setFromObject(root);
+  root.rotation.y = originalYaw;
+  root.updateWorldMatrix(true, true);
+
+  if (localBounds.isEmpty()) return [];
+  const size = localBounds.getSize(new THREE.Vector3());
+  const center = localBounds.getCenter(new THREE.Vector3());
+  const radius = Math.max(0.12, height * 0.16);
+  const tireWidth = radius * 0.48;
+  const rubber = makeMaterial(0x171916, 0.98);
+  const hub = makeMaterial(0x74796f, 0.52, 0.3);
+  const wheels = [];
+
+  for (const side of [-1, 1]) {
+    for (const end of [-1, 1]) {
+      const pivot = new THREE.Group();
+      pivot.name = `generated-wheel-${side}-${end}`;
+      pivot.position.set(
+        center.x + side * size.x * 0.47,
+        localBounds.min.y - root.position.y + radius,
+        center.z + end * size.z * 0.29
+      );
+      // CylinderGeometry is Y-axled. Rotate the pivot so its local Y axis
+      // becomes the vehicle's X axle, then spin around that local Y axis.
+      pivot.rotation.z = Math.PI / 2;
+      const tyre = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, tireWidth, 14), rubber);
+      tyre.castShadow = true;
+      tyre.receiveShadow = true;
+      pivot.add(tyre);
+
+      for (const face of [-1, 1]) {
+        const cap = new THREE.Mesh(
+          new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, tireWidth * 0.08, 12),
+          hub
+        );
+        cap.position.y = face * tireWidth * 0.49;
+        cap.castShadow = true;
+        pivot.add(cap);
+      }
+      root.add(pivot);
+      wheels.push({ object: pivot, radius, axis: 'y' });
+    }
+  }
+  return wheels;
+}
+
+function collectVehicleWheels(root, routeAxis, asset, height) {
+  const wheels = [];
+  root.traverse((object) => {
+    if (!object.name || !/wheel|tyre|tire/i.test(object.name)) return;
+    object.updateWorldMatrix(true, true);
+    const bounds = new THREE.Box3().setFromObject(object);
+    if (bounds.isEmpty()) return;
+    const size = bounds.getSize(new THREE.Vector3());
+    const diameter = routeAxis === 'x'
+      ? Math.max(size.x, size.y)
+      : Math.max(size.y, size.z);
+    const radius = diameter * 0.5;
+    if (Number.isFinite(radius) && radius > 0.06) {
+      wheels.push({ object, radius, axis: 'x' });
+    }
+  });
+
+  // These two supplied GLBs merge the whole vehicle into one mesh and expose
+  // no independent wheel nodes. Add editable, physically-sized wheel pivots.
+  if (wheels.length === 0 && ['Van', 'Bus'].includes(asset)) {
+    return createFallbackVehicleWheels(root, height);
+  }
+  return wheels;
+}
+
 async function addVehicles() {
   for (const definition of WORLD_CONFIG.vehicles) {
     const { id, asset, height, position, direction, speed, route, collision } = definition;
@@ -434,15 +516,12 @@ async function addVehicles() {
     const { root } = await createAsset(asset, {
       height, position, rotationY, parent: world, name: id
     });
-    const wheelNodes = [];
-    root.traverse((object) => {
-      if (object.name && /wheel/i.test(object.name)) wheelNodes.push(object);
-    });
+    const wheels = collectVehicleWheels(root, route.axis, asset, height);
     const vehicleBounds = new THREE.Box3().setFromObject(root);
     const vehicleSize = vehicleBounds.getSize(new THREE.Vector3());
     const vehicleCenter = vehicleBounds.getCenter(new THREE.Vector3());
     vehicles.push({
-      id, root, wheelNodes, asset, direction, speed, route,
+      id, root, wheels, asset, direction, speed, route,
       colliderOffsetX: vehicleCenter.x - root.position.x,
       colliderOffsetZ: vehicleCenter.z - root.position.z,
       colliderHalfWidth: Math.max(collision.minHalfWidth, vehicleSize.x * collision.scaleX),
@@ -460,7 +539,9 @@ async function addPedestrians() {
       definition.path,
       definition.speed,
       definition.id,
-      definition.collision
+      definition.collision,
+      definition.animation,
+      definition.interaction
     )
   ));
 }
@@ -571,30 +652,35 @@ function movePlayer(delta) {
   camera.position.y = 1.7;
 }
 function nearestDoor() {
-  if (currentInterior) return currentInterior;
-  let nearest = null;
-  let distance = Infinity;
-  const forward = camera.getWorldDirection(new THREE.Vector3());
-
-  for (const house of interactableDoors) {
-    if (!house.root.visible) continue;
-
-    // Do not allow entering through a side or rear wall.
-    const outsideDepth = (camera.position.z - house.center.z) * house.frontSide;
-    if (outsideDepth < 0.2) continue;
-
-    const target = { x: house.doorPosition.x, z: house.doorPosition.z };
-    if (!isInInteractionRange(camera.position, target, forward, 3.2, 0.28)) continue;
-
-    const dx = camera.position.x - target.x;
-    const dz = camera.position.z - target.z;
-    const d = Math.hypot(dx, dz);
-    if (d < distance) {
-      distance = d;
-      nearest = house;
-    }
-  }
-  return nearest;
+  if (currentInterior) return null;
+  const available = interactableDoors.filter((house) => {
+    if (!house.root.visible) return false;
+    // Keep the correct exterior side, but do not require the player to aim
+    // at the tiny door marker. E works throughout the nearby entrance area.
+    return (camera.position.z - house.center.z) * house.frontSide >= 0.2;
+  });
+  return findNearestByDistance(camera.position, available, 3.2, (house) => house.doorPosition);
+}
+function nearestPedestrian() {
+  if (currentInterior) return null;
+  return findNearestByDistance(
+    camera.position,
+    walkers.filter((walker) => walker.interaction),
+    2.35,
+    (walker) => walker.root.position
+  );
+}
+function closeNpcDialog() {
+  if (!activeNpcDialog) return;
+  activeNpcDialog = null;
+  npcDialog.classList.add('is-hidden');
+}
+function openNpcDialog(walker) {
+  activeNpcDialog = walker;
+  npcDialogName.textContent = walker.interaction.name;
+  npcDialogText.textContent = walker.interaction.text;
+  npcDialog.classList.remove('is-hidden');
+  toast.classList.remove('visible');
 }
 function enterHouse(house) {
   house.root.visible = false;
@@ -622,16 +708,26 @@ function exitHouse() {
   showToast('BACK TO THE STREET');
 }
 function interact() {
+  if (activeNpcDialog) {
+    closeNpcDialog();
+    return;
+  }
   if (currentInterior) {
     exitHouse();
     return;
   }
-  const house = nearestDoor();
-  if (house) {
-    enterHouse(house);
+
+  const pedestrian = nearestPedestrian();
+  const door = nearestDoor();
+  if (pedestrian && (!door || pedestrian.distance <= door.distance)) {
+    openNpcDialog(pedestrian.target);
     return;
   }
-  showToast('NO INTERACTION IN RANGE');
+  if (door) {
+    enterHouse(door.target);
+    return;
+  }
+  showToast('PŘIBLIŽ SE K OBJEKTU NEBO OBYVATELI');
 }
 
 function animateActors(delta) {
@@ -655,21 +751,73 @@ function animateActors(delta) {
 
   for (const vehicle of vehicles) {
     const axis = vehicle.route.axis;
-    const next = vehicle.root.position[axis] + vehicle.speed * vehicle.direction * delta;
-    if (next > vehicle.route.max) vehicle.root.position[axis] = vehicle.route.min;
-    else if (next < vehicle.route.min) vehicle.root.position[axis] = vehicle.route.max;
-    else vehicle.root.position[axis] = next;
+    const current = vehicle.root.position[axis];
+    const planned = splitAxisRoute(current, vehicle.speed * vehicle.direction * delta, vehicle.route);
+    let travelled = 0;
+    let stopped = false;
 
-    for (const wheel of vehicle.wheelNodes) wheel.rotation.x += vehicle.speed * delta * 1.4;
+    for (const segment of planned) {
+      const segmentDistance = segment.to - segment.from;
+      const steps = Math.max(1, Math.ceil(Math.abs(segmentDistance) / 0.12));
+      for (let index = 1; index <= steps; index += 1) {
+        const candidate = segment.from + segmentDistance * (index / steps);
+        const fixed = axis === 'x'
+          ? vehicle.root.position.z + vehicle.colliderOffsetZ
+          : vehicle.root.position.x + vehicle.colliderOffsetX;
+        const clear = canMoveVehicleAlongAxis(
+          { x: camera.position.x, z: camera.position.z },
+          playerRadius,
+          axis,
+          fixed,
+          vehicle.root.position[axis] + (axis === 'x' ? vehicle.colliderOffsetX : vehicle.colliderOffsetZ),
+          candidate + (axis === 'x' ? vehicle.colliderOffsetX : vehicle.colliderOffsetZ),
+          vehicle.colliderHalfWidth,
+          vehicle.colliderHalfDepth
+        );
+        if (!clear) {
+          stopped = true;
+          break;
+        }
+        const previous = vehicle.root.position[axis];
+        vehicle.root.position[axis] = candidate;
+        travelled += Math.abs(candidate - previous);
+      }
+      if (stopped) break;
+      if (segment.wrapTo !== null) {
+        vehicle.root.position[axis] = segment.wrapTo;
+      }
+    }
+
+    if (travelled > 0) {
+      const roll = wheelAngularDelta(travelled, 1);
+      for (const wheel of vehicle.wheels) {
+        const angle = wheelAngularDelta(travelled, wheel.radius);
+        if (wheel.axis === 'y') wheel.object.rotateY(-angle);
+        else wheel.object.rotation.x -= angle;
+      }
+    }
   }
 }
 
 function updateUI() {
   coordinates.textContent = `X ${camera.position.x.toFixed(1)} · Z ${camera.position.z.toFixed(1)}`;
-  const active = currentInterior || nearestDoor();
-  if (currentInterior) hint.textContent = 'E / EXIT HOUSE';
-  else if (active) hint.textContent = `LOOK AT DOOR · E / ENTER ${active.name.toUpperCase().replaceAll('-', ' ')}`;
-  else hint.textContent = 'WASD MOVE · SHIFT RUN · MOUSE LOOK · E INTERACT';
+  const door = nearestDoor();
+  const pedestrian = nearestPedestrian();
+
+  if (activeNpcDialog) {
+    const distance = Math.hypot(
+      activeNpcDialog.root.position.x - camera.position.x,
+      activeNpcDialog.root.position.z - camera.position.z
+    );
+    if (distance > 3.8 || !activeNpcDialog.root.visible) closeNpcDialog();
+  }
+
+  if (currentInterior) hint.textContent = 'E / OPUSTIT INTERIÉR';
+  else if (activeNpcDialog) hint.textContent = 'E / ZAVŘÍT ROZHOVOR';
+  else if (pedestrian && (!door || pedestrian.distance <= door.distance)) {
+    hint.textContent = `E / PROMLOUVIT · ${pedestrian.target.interaction.name.toUpperCase()}`;
+  } else if (door) hint.textContent = `E / VSTOUPIT · ${door.target.name.toUpperCase().replaceAll('-', ' ')}`;
+  else hint.textContent = 'WASD POHYB · SHIFT BĚH · MYŠ POHLED · E INTERAKCE';
 }
 function resize() {
   const width = Math.max(1, mount.clientWidth);
