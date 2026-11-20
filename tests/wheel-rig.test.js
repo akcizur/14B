@@ -80,3 +80,66 @@ test('wheel rig rejects invalid inputs without mutating the vehicle', () => {
   assert.equal(spinWheel(null, 1), false);
   assert.equal(spinWheel({ pivot: root }, Number.NaN), false);
 });
+
+
+function mergeIndexedGeometry(parts) {
+  const positions = [];
+  const indices = [];
+  let vertexOffset = 0;
+  for (const geometry of parts) {
+    const attribute = geometry.getAttribute('position');
+    for (let i = 0; i < attribute.count; i += 1) {
+      positions.push(attribute.getX(i), attribute.getY(i), attribute.getZ(i));
+    }
+    for (const value of geometry.index.array) indices.push(value + vertexOffset);
+    vertexOffset += attribute.count;
+  }
+  const merged = new THREE.BufferGeometry();
+  merged.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  merged.setIndex(indices);
+  merged.computeVertexNormals();
+  merged.computeBoundingBox();
+  merged.computeBoundingSphere();
+  return merged;
+}
+
+test('merged vehicle geometry yields four original wheel rigs without duplicate overlay tyres', async () => {
+  const { extractMergedWheelComponents } = await import('../src/vehicles/wheel-rig.js');
+  const parts = [new THREE.BoxGeometry(4, 2, 6)];
+  for (const x of [-1.2, 1.2]) {
+    for (const z of [-1.8, 1.8]) {
+      const tyre = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
+      tyre.rotateZ(Math.PI / 2);
+      tyre.translate(x, 0.4, z);
+      const rim = new THREE.CylinderGeometry(0.24, 0.24, 0.08, 16);
+      rim.rotateZ(Math.PI / 2);
+      rim.translate(x, 0.4, z);
+      parts.push(tyre, rim);
+    }
+  }
+
+  const root = new THREE.Group();
+  root.position.set(4, 0, -2);
+  root.rotation.y = Math.PI / 2;
+  root.scale.setScalar(1.5);
+  const body = new THREE.Mesh(mergeIndexedGeometry(parts), new THREE.MeshBasicMaterial());
+  root.add(body);
+  root.updateWorldMatrix(true, true);
+
+  const originalTriangles = body.geometry.index.count / 3;
+  const wheels = extractMergedWheelComponents(root, body);
+  assert.equal(wheels.length, 4);
+  assert.ok(body.geometry.index.count / 3 < originalTriangles);
+  assert.equal(root.children.filter((child) => child.name.startsWith('extracted-wheel-')).length, 0);
+  assert.equal(root.children.filter((child) => child.name.includes('spin-pivot')).length, 4);
+
+  const centers = wheels.map((wheel) => wheel.pivot.getWorldPosition(new THREE.Vector3()));
+  for (const wheel of wheels) {
+    assert.ok(wheel.radius > 0.3);
+    assert.ok(spinWheel(wheel, Math.PI / 2));
+  }
+  root.updateWorldMatrix(true, true);
+  wheels.forEach((wheel, index) => {
+    assertVectorClose(wheel.pivot.getWorldPosition(new THREE.Vector3()), centers[index]);
+  });
+});
