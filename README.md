@@ -5,12 +5,12 @@ Asset-driven Three.js first-person urban open world, currently delivered as one 
 ## Main experience
 
 - First-person exploration of a compact residential district, with pointer-lock mouse look.
-- Two enterable, furnished interiors built from the supplied furniture and appliance models.
+- Two enterable, three-storey structural interiors generated to the measured exterior building dimensions, with room divisions, stairwells, windows and glazing. Furniture is intentionally deferred.
 - 68 locally stored GLB models covering residential buildings, street props, vehicles, pedestrians and interior objects. Only models referenced by the manifest are fetched; assets are cached after the first load.
 - Animated pedestrians and moving road traffic, including animated wheel nodes when supplied by the model.
 - Daylight, soft fog, shadow mapping, tone mapping and a restrained CRT/grain-inspired interface.
 - Loading and welcome screens, pause handling, coordinates and local device clock.
-- Normalized walk/run movement with swept collision checks, obstacle sliding, static street/building collisions, moving vehicle and pedestrian collision footprints, and furniture collision inside both interiors.
+- Normalized walk/run movement with swept collision checks, obstacle sliding, static street/building collisions, moving vehicle and pedestrian collision footprints, and architectural wall/doorway collision and walkable stair transitions inside both interiors.
 
 ## Run locally
 
@@ -43,7 +43,8 @@ npm run preview
 
 - `src/main.js`: application bootstrap and runtime orchestration.
 - `src/world/world-config.js`: editable world catalog for map geometry, buildings, street props, vegetation, traffic and pedestrians.
-- `src/world/world-validation.js`: validates entity IDs, model references, transforms, collision profiles and routes before scene creation.
+- `src/world/world-validation.js`: validates entity IDs, model references, transforms, collision profiles, routes and building architecture before scene creation.
+- `src/world/building-architecture.js`: measures each building model and generates dimension-matched multi-storey floorplates, partitions, stair flights, window openings, frames and glazing.
 - `src/collision.js`: reusable circle/AABB collision, swept movement, directional interaction and normalized input helpers.
 - `src/styles.css`: HUD, loading, welcome and pause interface.
 - `public/models/`: 68 selected local GLB assets and `manifest.json`.
@@ -67,4 +68,4 @@ The supplied asset archive did not include a complete license manifest. The mode
 
 ## Notes
 
-This is an asset-driven remake, not a binary conversion of the earlier DWG house. The DWG remains a separate CAD source. Building shells and the two playable interiors are assembled from the supplied GLB city, vehicle, character and interior assets.
+This is an asset-driven remake, not a binary conversion of the earlier DWG house. The DWG remains a separate CAD source. Building shells remain the supplied GLB models. Playable interior structure is generated from each shell's measured GLB bounds; furniture and decorative equipment are deliberately deferred.
