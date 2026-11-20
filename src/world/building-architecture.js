@@ -363,9 +363,26 @@ function buildFloorPartitions(parent, plan, level, materials, colliders) {
   const corridorWall = plan.corridorWallX;
   if (corridorWall >= inner.maxX - 0.9) return;
 
-  // A continuous corridor connects the entrance and stair core to each room.
-  addWallSection(parent, 'z', `level-${level}-corridor-wall`, corridorWall,
-    inner.minZ + 0.18, inner.maxZ - 0.18, floorY, height, 0.12, materials.partition, colliders);
+  // A corridor connects the entrance and stair core to each room. Door openings
+  // are built into the corridor wall so every room remains reachable.
+  buildWallWithOpenings(parent, {
+    axis: 'z',
+    name: `level-${level}-corridor-wall`,
+    coordinate: corridorWall,
+    start: inner.minZ + 0.18,
+    end: inner.maxZ - 0.18,
+    floorY,
+    height,
+    thickness: 0.12,
+    material: materials.partition,
+    frame: materials.frame,
+    glass: materials.glass,
+    colliders,
+    openings: [
+      { kind: 'door', center: inner.minZ + plan.innerDepth * 0.28, width: 0.88, sill: 0, height: Math.min(2.12, height - 0.1) },
+      { kind: 'door', center: inner.minZ + plan.innerDepth * 0.74, width: 0.88, sill: 0, height: Math.min(2.12, height - 0.1) }
+    ]
+  });
 
   const roomStart = corridorWall + 0.12;
   const roomWidth = inner.maxX - roomStart;
@@ -391,10 +408,6 @@ function buildFloorPartitions(parent, plan, level, materials, colliders) {
   });
 
   // Keep the stair shaft clear at every storey.
-  if (stair.maxX < corridorWall - 0.2) {
-    addWallSection(parent, 'z', `level-${level}-stair-divider`, stair.maxX + 0.06,
-      stair.minZ, stair.maxZ, floorY, height, 0.12, materials.partition, colliders);
-  }
 }
 
 export function buildBuildingInterior(buildingRoot, definition = {}) {
