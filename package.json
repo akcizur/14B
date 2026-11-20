@@ -1,0 +1,22 @@
+{
+  "name": "district-14-remake",
+  "private": true,
+  "version": "1.1.0",
+  "type": "module",
+  "description": "Asset-driven Three.js first-person residential district remake.",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "three": "0.169.0"
+  },
+  "devDependencies": {
+    "vite": "6.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#111310" />
+    <meta name="description" content="District 14 — 3D neighborhood remake using the supplied GLB asset collection." />
+    <title>DISTRICT 14 — REMAKE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Micro+5&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <main id="game">
+      <canvas id="screenCanvas" aria-label="3D svět District 14"></canvas>
+      <div class="grain" aria-hidden="true"></div>
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">14</span><span>DISTRICT / RESIDENTIAL</span></div>
+        <div class="top-meta"><span id="locationLabel">DISTRICT 14</span><span class="live-dot"></span><span id="clock">00:00</span></div>
+      </header>
+      <section class="hud" aria-live="polite">
+        <div class="hud-left"><span class="hud-label">POSITION</span><strong id="coordinates">X 0.0 · Z 0.0</strong></div>
+        <div class="hud-right"><span class="hud-label">WORLD STATE</span><strong id="worldState">INITIALIZING</strong></div>
+      </section>
+      <div class="reticle" aria-hidden="true"><i></i><b></b></div>
+      <div id="hint" class="hint" aria-live="polite">WASD MOVE · SHIFT RUN · MOUSE LOOK · E INTERACT</div>
+      <div id="toast" class="toast" role="status"></div>
+      <div id="loading" class="loading-screen">
+        <div class="loading-content">
+          <div class="loading-kicker">3D ENVIRONMENT / ASSET PACK REMAKE</div>
+          <div class="loading-title">DISTRICT<span>14</span></div>
+          <div class="loading-track"><i id="loadingBar"></i></div>
+          <p id="loadingText">LOADING MODELS · 0%</p>
+        </div>
+      </div>
+      <section id="welcomeScreen" class="overlay">
+        <div class="welcome-card">
+          <div class="eyebrow">A SMALL PLACE / A LIVING WORLD</div>
+          <h1>DISTRICT <span>14</span></h1>
+          <p class="welcome-copy">Residential block remake built from the supplied GLB collection.</p>
+          <div class="welcome-stats"><div><b>68</b><span>ASSETS</span></div><div><b>02</b><span>INTERIORS</span></div><div><b>01</b><span>NEIGHBORHOOD</span></div></div>
+          <button id="startButton" class="start-button" type="button"><span>ENTER WORLD</span><kbd>↵</kbd></button>
+          <a class="mode-link" href="./city-courier/" aria-label="Open City Courier arcade game mode">
+            <span><strong>CITY COURIER</strong><small>ARCADE DRIVE · MISSIONS · LOCAL SPLIT-SCREEN</small></span>
+            <b aria-hidden="true">↗</b>
+          </a>
+          <div class="welcome-controls">WASD MOVE <span>·</span> SHIFT RUN <span>·</span> MOUSE LOOK <span>·</span> E INTERACT</div>
+        </div>
+      </section>
+      <section id="pauseScreen" class="overlay is-hidden">
+        <div class="pause-card"><div class="eyebrow">SESSION PAUSED</div><h2>PAUSE<span>.</span></h2><p>Press ESC or continue to return to the street.</p><button id="resumeButton" class="start-button" type="button"><span>CONTINUE</span><kbd>ESC</kbd></button></div>
+      </section>
+      <footer class="footer"><span>THREE.JS / GLTF</span><span>LOCAL WORLD BUILD 01</span><span>ASSET-DRIVEN REMAKE</span></footer>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
