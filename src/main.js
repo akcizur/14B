@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import { canOccupy, resolveAxisMovement } from './collision.js';
+import { canOccupy, isInInteractionRange, normalizeMovement, resolveAxisMovement } from './collision.js';
 
 const mount = document.getElementById('game');
 const canvas = document.getElementById('screenCanvas');
@@ -87,7 +87,19 @@ function addPlane(parent, name, x, y, z, sx, sz, material) {
   return mesh;
 }
 function addCollider(name, x, z, width, depth) {
+  if (![x, z, width, depth].every(Number.isFinite) || width <= 0 || depth <= 0) return;
   colliders.push({ name, minX: x - width / 2, maxX: x + width / 2, minZ: z - depth / 2, maxZ: z + depth / 2 });
+}
+function addObjectCollider(root, name, scale = 0.82, minSize = 0.3) {
+  root.updateWorldMatrix(true, true);
+  const bounds = new THREE.Box3().setFromObject(root);
+  if (bounds.isEmpty()) return;
+  const size = bounds.getSize(new THREE.Vector3());
+  const center = bounds.getCenter(new THREE.Vector3());
+  if (![size.x, size.z, center.x, center.z].every(Number.isFinite)) return;
+  const width = Math.max(minSize, size.x * scale);
+  const depth = Math.max(minSize, size.z * scale);
+  addCollider(name, center.x, center.z, width, depth);
 }
 function showToast(message) {
   toast.textContent = message;
@@ -163,7 +175,7 @@ function addAnimatedActor(key, height, position, path, speed, name) {
     }
     mixers.push(mixer);
     root.rotation.y = Math.PI / 2;
-    walkers.push({ root, mixer, path, speed, direction: 1, name });
+    walkers.push({ root, mixer, path, speed, direction: 1, name, colliderHalfWidth: 0.28, colliderHalfDepth: 0.28 });
     return root;
   });
 }
@@ -359,7 +371,15 @@ async function addStreetProps() {
       const box = new THREE.Box3().setFromObject(root);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
-      if (key !== 'Mailbox' && key !== 'Planter & Bushes') addCollider(`prop-${key}`, center.x, center.z, Math.max(0.45, size.x * 0.75), Math.max(0.45, size.z * 0.75));
+      const solidProps = new Set([
+        'Bench', 'Mailbox', 'Planter & Bushes', 'Traffic Light', 'Stop sign',
+        'Fire hydrant', 'Trash Can', 'Power Box', 'Bus Stop', 'Bus stop sign',
+        'Greenhouse', 'Dumpster', 'Washing Line'
+      ]);
+      if (solidProps.has(key)) {
+        const scale = key === 'Planter & Bushes' ? 0.62 : 0.82;
+        addObjectCollider(root, `prop-${key}`, scale, 0.34);
+      }
     }
   }));
 
@@ -377,6 +397,7 @@ async function addStreetProps() {
       });
       shadowify(root);
       world.add(root);
+      addObjectCollider(root, `fence-${side}-${i}`, 0.92, 0.22);
     }
   }
 }
@@ -395,6 +416,7 @@ function addStreetLights() {
       light.position.set(side > 0 ? 0.72 : -0.72, 3.95, 0);
       root.add(light);
       world.add(root);
+      addCollider(`street-light-${side}-${x}`, x, side * 5.95, 0.24, 0.24);
     }
   }
 }
@@ -420,7 +442,16 @@ async function addVehicles() {
     root.traverse((object) => {
       if (object.name && /wheel/i.test(object.name)) wheelNodes.push(object);
     });
-    vehicles.push({ root, wheelNodes, ...config });
+    const vehicleBounds = new THREE.Box3().setFromObject(root);
+    const vehicleSize = vehicleBounds.getSize(new THREE.Vector3());
+    const vehicleCenter = vehicleBounds.getCenter(new THREE.Vector3());
+    vehicles.push({
+      root, wheelNodes, ...config,
+      colliderOffsetX: vehicleCenter.x - root.position.x,
+      colliderOffsetZ: vehicleCenter.z - root.position.z,
+      colliderHalfWidth: Math.max(1.05, vehicleSize.x * 0.4),
+      colliderHalfDepth: Math.max(0.62, vehicleSize.z * 0.4)
+    });
   }
 }
 
@@ -440,7 +471,8 @@ function addTrees() {
   ];
   return Promise.all(treeSpots.map(async ([x, z], i) => {
     const { root } = await createAsset('Tree', { height: 7.1 + (i % 3) * 0.35, position: [x, 0, z], parent: world, name: `street-tree-${i}` });
-    if (i % 3 === 0) addCollider(`tree-${i}`, x, z, 0.8, 0.8);
+    // Use a trunk-sized footprint, not the full crown bounding box.
+    addCollider(`tree-trunk-${i}`, x, z, 0.68, 0.68);
     return root;
   }));
 }
@@ -461,6 +493,31 @@ async function buildInteriorEntranceMarker(house) {
   house.marker = root;
 }
 
+function getMovingActorColliders() {
+  const dynamic = [];
+  for (const vehicle of vehicles) {
+    const centerX = vehicle.root.position.x + vehicle.colliderOffsetX;
+    const centerZ = vehicle.root.position.z + vehicle.colliderOffsetZ;
+    dynamic.push({
+      name: `moving-${vehicle.key}`,
+      minX: centerX - vehicle.colliderHalfWidth,
+      maxX: centerX + vehicle.colliderHalfWidth,
+      minZ: centerZ - vehicle.colliderHalfDepth,
+      maxZ: centerZ + vehicle.colliderHalfDepth
+    });
+  }
+  for (const walker of walkers) {
+    dynamic.push({
+      name: `walker-${walker.name}`,
+      minX: walker.root.position.x - walker.colliderHalfWidth,
+      maxX: walker.root.position.x + walker.colliderHalfWidth,
+      minZ: walker.root.position.z - walker.colliderHalfDepth,
+      maxZ: walker.root.position.z + walker.colliderHalfDepth
+    });
+  }
+  return dynamic;
+}
+
 function canPlayerOccupy(x, z) {
   if (currentInterior) {
     const local = currentInterior.interior.worldToLocal(new THREE.Vector3(x, camera.position.y, z));
@@ -469,23 +526,30 @@ function canPlayerOccupy(x, z) {
     return canOccupy(x, z, playerRadius, null, currentInterior.interior.userData.collisionBoxes || []);
   }
   const worldBounds = { minX: -40, maxX: 40, minZ: -29, maxZ: 29 };
-  return canOccupy(x, z, playerRadius, worldBounds, colliders);
+  return canOccupy(x, z, playerRadius, worldBounds, [...colliders, ...getMovingActorColliders()]);
 }
 function movePlayer(delta) {
   if (!controls.isLocked || !gameStarted) return;
   const previous = camera.position.clone();
   const running = keyState.has('ShiftLeft') || keyState.has('ShiftRight');
   const speed = running ? 7.0 : 4.2;
+  const forwardInput = (keyState.has('KeyW') || keyState.has('ArrowUp') ? 1 : 0) -
+    (keyState.has('KeyS') || keyState.has('ArrowDown') ? 1 : 0);
+  const strafeInput = (keyState.has('KeyD') || keyState.has('ArrowRight') ? 1 : 0) -
+    (keyState.has('KeyA') || keyState.has('ArrowLeft') ? 1 : 0);
+  const movement = normalizeMovement(forwardInput, strafeInput);
+  if (movement.x === 0 && movement.z === 0) return;
+
   const move = speed * delta;
-  if (keyState.has('KeyW') || keyState.has('ArrowUp')) controls.moveForward(move);
-  if (keyState.has('KeyS') || keyState.has('ArrowDown')) controls.moveForward(-move);
-  if (keyState.has('KeyA') || keyState.has('ArrowLeft')) controls.moveRight(-move);
-  if (keyState.has('KeyD') || keyState.has('ArrowRight')) controls.moveRight(move);
+  controls.moveForward(move * movement.x);
+  controls.moveRight(move * movement.z);
+
   const requested = { x: camera.position.x, z: camera.position.z };
   const resolved = resolveAxisMovement(
     { x: previous.x, z: previous.z },
     requested,
-    canPlayerOccupy
+    canPlayerOccupy,
+    0.16
   );
   camera.position.x = resolved.x;
   camera.position.z = resolved.z;
@@ -495,12 +559,27 @@ function nearestDoor() {
   if (currentInterior) return currentInterior;
   let nearest = null;
   let distance = Infinity;
+  const forward = camera.getWorldDirection(new THREE.Vector3());
+
   for (const house of interactableDoors) {
     if (!house.root.visible) continue;
-    const d = camera.position.distanceTo(new THREE.Vector3(house.doorPosition.x, 1.1, house.doorPosition.z));
-    if (d < distance) { distance = d; nearest = house; }
+
+    // Do not allow entering through a side or rear wall.
+    const outsideDepth = (camera.position.z - house.center.z) * house.frontSide;
+    if (outsideDepth < 0.2) continue;
+
+    const target = { x: house.doorPosition.x, z: house.doorPosition.z };
+    if (!isInInteractionRange(camera.position, target, forward, 3.2, 0.28)) continue;
+
+    const dx = camera.position.x - target.x;
+    const dz = camera.position.z - target.z;
+    const d = Math.hypot(dx, dz);
+    if (d < distance) {
+      distance = d;
+      nearest = house;
+    }
   }
-  return distance < 3.8 ? nearest : null;
+  return nearest;
 }
 function enterHouse(house) {
   house.root.visible = false;
@@ -558,7 +637,7 @@ function updateUI() {
   coordinates.textContent = `X ${camera.position.x.toFixed(1)} · Z ${camera.position.z.toFixed(1)}`;
   const active = currentInterior || nearestDoor();
   if (currentInterior) hint.textContent = 'E / EXIT HOUSE';
-  else if (active) hint.textContent = `E / ENTER ${active.name.toUpperCase().replaceAll('-', ' ')}`;
+  else if (active) hint.textContent = `LOOK AT DOOR · E / ENTER ${active.name.toUpperCase().replaceAll('-', ' ')}`;
   else hint.textContent = 'WASD MOVE · SHIFT RUN · MOUSE LOOK · E INTERACT';
 }
 function resize() {
