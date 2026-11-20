@@ -64,3 +64,13 @@ test('pedestrians define local talk interactions and gait reference speeds', () 
     Number.isFinite(npc.animation?.walkSpeed) && npc.animation.walkSpeed > 0
   ));
 });
+
+
+test('enterable buildings define multi-storey structural architecture', () => {
+  const houses = WORLD_CONFIG.buildings.filter((building) => building.role === 'house');
+  assert.equal(houses.length, 2);
+  assert.ok(houses.every((house) => Number.isInteger(house.architecture?.storeys)));
+  assert.ok(houses.every((house) => house.architecture.storeys >= 2));
+  assert.ok(WORLD_CONFIG.street.entryPath.width > 0);
+  assert.ok(WORLD_CONFIG.fences.z > 15, 'garden fence must not block the house entry approach');
+});
