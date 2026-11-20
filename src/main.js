@@ -166,7 +166,7 @@ async function createAsset(key, options = {}) {
   if (options.parent) options.parent.add(root);
   return { root, animations: gltf.animations || [] };
 }
-function addAnimatedActor(key, height, position, path, speed, name) {
+function addAnimatedActor(key, height, position, path, speed, name, collision) {
   return createAsset(key, { height, position, parent: world, name }).then(({ root, animations }) => {
     const mixer = new THREE.AnimationMixer(root);
     const walkClip = animations.find((clip) => /walk|walking|run/i.test(clip.name));
@@ -178,7 +178,7 @@ function addAnimatedActor(key, height, position, path, speed, name) {
     }
     mixers.push(mixer);
     root.rotation.y = path.axis === 'z' ? 0 : Math.PI / 2;
-    walkers.push({ root, mixer, path, speed, direction: 1, name, colliderHalfWidth: 0.28, colliderHalfDepth: 0.28 });
+    walkers.push({ root, mixer, path, speed, direction: 1, name, colliderHalfWidth: collision.halfWidth, colliderHalfDepth: collision.halfDepth });
     return root;
   });
 }
@@ -225,7 +225,7 @@ function addStreetBase() {
 }
 
 async function addBuilding(definition) {
-  const { id, asset, position, rotationY = 0, height, role, frontSide } = definition;
+  const { id, asset, position, rotationY = 0, height, role, frontSide, collision } = definition;
   const { root } = await createAsset(asset, {
     height, position, rotationY, parent: world, name: id
   });
@@ -249,9 +249,9 @@ async function addBuilding(definition) {
     };
     houses.push(house);
     interactableDoors.push(house);
-    addCollider(id, center.x, center.z, Math.max(4, size.x * 0.88), Math.max(3.3, size.z * 0.82));
+    addCollider(id, center.x, center.z, Math.max(collision.minWidth, size.x * collision.scaleX), Math.max(collision.minDepth, size.z * collision.scaleZ));
   } else {
-    addCollider(id, center.x, center.z, size.x * 0.95, size.z * 0.95);
+    addCollider(id, center.x, center.z, Math.max(collision.minWidth, size.x * collision.scaleX), Math.max(collision.minDepth, size.z * collision.scaleZ));
   }
   return root;
 }
@@ -420,14 +420,14 @@ function addStreetLights() {
       light.position.set(side > 0 ? 0.72 : -0.72, config.poleHeight - 0.45, 0);
       root.add(light);
       world.add(root);
-      addCollider('street-light-' + side + '-' + x, x, side * config.z, 0.24, 0.24);
+      addCollider('street-light-' + side + '-' + x, x, side * config.z, config.collision.radius * 2, config.collision.radius * 2);
     }
   }
 }
 
 async function addVehicles() {
   for (const definition of WORLD_CONFIG.vehicles) {
-    const { id, asset, height, position, direction, speed, route } = definition;
+    const { id, asset, height, position, direction, speed, route, collision } = definition;
     const rotationY = route.axis === 'x'
       ? (direction > 0 ? Math.PI / 2 : -Math.PI / 2)
       : (direction > 0 ? 0 : Math.PI);
@@ -445,8 +445,8 @@ async function addVehicles() {
       id, root, wheelNodes, asset, direction, speed, route,
       colliderOffsetX: vehicleCenter.x - root.position.x,
       colliderOffsetZ: vehicleCenter.z - root.position.z,
-      colliderHalfWidth: Math.max(1.05, vehicleSize.x * 0.4),
-      colliderHalfDepth: Math.max(0.62, vehicleSize.z * 0.4)
+      colliderHalfWidth: Math.max(collision.minHalfWidth, vehicleSize.x * collision.scaleX),
+      colliderHalfDepth: Math.max(collision.minHalfDepth, vehicleSize.z * collision.scaleZ)
     });
   }
 }
@@ -459,7 +459,8 @@ async function addPedestrians() {
       definition.position,
       definition.path,
       definition.speed,
-      definition.id
+      definition.id,
+      definition.collision
     )
   ));
 }
@@ -470,7 +471,8 @@ function addTrees() {
     const { root } = await createAsset('Tree', {
       height, position, parent: world, name: id
     });
-    addCollider('trunk-' + id, position[0], position[2], 0.68, 0.68);
+    const radius = definition.collision.radius;
+    addCollider('trunk-' + id, position[0], position[2], radius * 2, radius * 2);
     return root;
   }));
 }
