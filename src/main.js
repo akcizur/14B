@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
+import { attachWheelPivot, spinWheel } from './vehicles/wheel-rig.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -438,30 +439,6 @@ function addStreetLights() {
  * intentionally identity-oriented: local X is the axle on every supplied
  * vehicle model. The source node's original quaternion stays untouched.
  */
-function attachWheelPivot(root, wheelNode, radius) {
-  root.updateWorldMatrix(true, true);
-  wheelNode.updateWorldMatrix(true, false);
-
-  const wheelBounds = new THREE.Box3().setFromObject(wheelNode);
-  if (wheelBounds.isEmpty()) return null;
-
-  const centerWorld = wheelBounds.getCenter(new THREE.Vector3());
-  const centerLocal = root.worldToLocal(centerWorld.clone());
-  const pivot = new THREE.Group();
-  pivot.name = `${wheelNode.name || 'wheel'}-spin-pivot`;
-  pivot.position.copy(centerLocal);
-  root.add(pivot);
-
-  // Object3D.attach preserves the node's complete world matrix, including
-  // the original GLB position, quaternion and scale. Rotating the pivot now
-  // cannot orbit the wheel around the vehicle origin or overwrite its rest pose.
-  root.updateWorldMatrix(true, true);
-  pivot.updateWorldMatrix(true, false);
-  pivot.attach(wheelNode);
-
-  return { pivot, radius, axle: 'x' };
-}
-
 function createFallbackVehicleWheels(root, layout) {
   const originalYaw = root.rotation.y;
   root.rotation.y = 0;
@@ -863,7 +840,7 @@ function animateActors(delta) {
         const angle = wheelAngularDelta(travelled, wheel.radius);
         // Every pivot is identity-oriented in vehicle-local space, with its
         // X axis aligned to the axle. Keep the imported mesh rest transform.
-        wheel.pivot.rotateX(angle);
+        spinWheel(wheel, angle);
       }
     }
   }
