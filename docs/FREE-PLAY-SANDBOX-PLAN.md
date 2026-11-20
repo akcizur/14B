@@ -1,3 +1,17 @@
+# District 14: historický audit a navazující dokumentace
+
+> **Archivní dokument.** Tento soubor zachovává původní audit před přestavbou na jednu referenční parcelu. Jeho popis dvou interiérů, více budov, dopravy, NPC, hranic mapy a tehdejšího stavu kódu již neodpovídá aktuálnímu main po PR #4. Nepoužívej ho jako aktuální implementační checklist.
+
+Aktuální dokumentace:
+- [Index dokumentace](README.md)
+- [Referenční ulice a dům](REFERENCE-HOUSE-AND-STREET.md)
+- [Architektura světa](WORLD-ARCHITECTURE.md)
+- [Plán postupného růstu](SETTLEMENT-GROWTH.md)
+
+Původní audit níže zůstává jako historický záznam důvodů, proč bylo nutné původní scénu zjednodušit a přestavět od měřítka jednoho domu.
+
+---
+
 # District 14: plán auditu a úprav 3D světa
 
 **Rozsah:** jediný otevřený Free Play / Sandbox svět  

@@ -12,7 +12,7 @@ export const WORLD_CONFIG = {
 
   bounds: { minX: -28, maxX: 28, minZ: -23, maxZ: 23 },
   spawn: {
-    position: [0, 1.7, 3.9],
+    position: [0, 1.7, 6.15],
     rotation: [0, 0, 0]
   },
 

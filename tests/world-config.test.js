@@ -83,6 +83,11 @@ test('starter world contains only one reference house and the road corridor', ()
   assert.deepEqual(WORLD_CONFIG.pedestrians, []);
   assert.ok(WORLD_CONFIG.street.road.size[0] > WORLD_CONFIG.street.road.size[1]);
   assert.ok(WORLD_CONFIG.street.sidewalk.width > 0);
+  const spawnZ = WORLD_CONFIG.spawn.position[2];
+  assert.ok(Math.abs(spawnZ - WORLD_CONFIG.street.sidewalk.z) < WORLD_CONFIG.street.sidewalk.depth / 2 - 0.3,
+    'player must spawn inside the sidewalk rather than in a traffic lane');
+  assert.ok(Math.abs(spawnZ) > WORLD_CONFIG.street.road.size[1] / 2,
+    'player spawn must stay outside the road surface');
   assert.equal(WORLD_CONFIG.street.manhole, undefined);
 });
 
