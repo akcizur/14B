@@ -161,6 +161,15 @@ export function validateWorldConfig(config, assetManifest) {
         }
       }
       if (collectionName === 'pedestrians') {
+        if (!item.interaction || typeof item.interaction.name !== 'string' ||
+            !item.interaction.name.trim() || typeof item.interaction.text !== 'string' ||
+            !item.interaction.text.trim() || !Number.isFinite(item.interaction.radius) ||
+            item.interaction.radius <= 0 || item.interaction.radius > 5) {
+          add(`Pedestrian "${item.id}" needs a valid proximity interaction definition.`);
+        }
+        if (item.animation && (!Number.isFinite(item.animation.walkSpeed) || item.animation.walkSpeed <= 0)) {
+          add(`Pedestrian "${item.id}" has an invalid authored walk speed.`);
+        }
         if (!Number.isFinite(item.speed) || item.speed <= 0 ||
             !item.path || !['x', 'z'].includes(item.path.axis) ||
             !Number.isFinite(item.path.min) || !Number.isFinite(item.path.max) ||

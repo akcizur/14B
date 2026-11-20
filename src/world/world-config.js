@@ -108,9 +108,9 @@ export const WORLD_CONFIG = {
   ],
 
   pedestrians: [
-    { id: 'walker-man-a', asset: 'Man', height: 1.82, position: [-24, 0, -6], path: { min: -26, max: 22, axis: 'x' }, speed: 0.78, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
-    { id: 'walker-woman-a', asset: 'Animated Woman', height: 1.78, position: [20, 0, 6], path: { min: -20, max: 25, axis: 'x' }, speed: 0.64, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
-    { id: 'walker-adventurer', asset: 'Adventurer', height: 1.72, position: [-8, 0, -6.2], path: { min: -23, max: 23, axis: 'x' }, speed: 0.55, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
-    { id: 'walker-woman-b', asset: 'Animated Woman-nIItLV9nxS', height: 1.76, position: [8, 0, 6.25], path: { min: -24, max: 24, axis: 'x' }, speed: 0.72, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } }
+    { id: 'walker-man-a', asset: 'Man', height: 1.82, position: [-24, 0, -6], path: { min: -26, max: 22, axis: 'x' }, speed: 0.78, animation: { walkSpeed: 1.2 }, interaction: { name: 'Soused', text: 'Dobrý večer. Jen se vracím domů.', radius: 2.35 }, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
+    { id: 'walker-woman-a', asset: 'Animated Woman', height: 1.78, position: [20, 0, 6], path: { min: -20, max: 25, axis: 'x' }, speed: 0.64, animation: { walkSpeed: 1.2 }, interaction: { name: 'Sousedka', text: 'Ráno je tu největší klid. Večer už je ulice živější.', radius: 2.35 }, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
+    { id: 'walker-adventurer', asset: 'Adventurer', height: 1.72, position: [-8, 0, -6.2], path: { min: -23, max: 23, axis: 'x' }, speed: 0.55, animation: { walkSpeed: 1.2 }, interaction: { name: 'Návštěvník', text: 'Zkouším si najít cestu přes celé sídliště.', radius: 2.35 }, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } },
+    { id: 'walker-woman-b', asset: 'Animated Woman-nIItLV9nxS', height: 1.76, position: [8, 0, 6.25], path: { min: -24, max: 24, axis: 'x' }, speed: 0.72, animation: { walkSpeed: 1.2 }, interaction: { name: 'Sousedka', text: 'Autobus dnes zase nabírá zpoždění.', radius: 2.35 }, collision: { type: 'bounds', halfWidth: 0.28, halfDepth: 0.28 } }
   ]
 };
