@@ -53,7 +53,7 @@ export function validateWorldConfig(config, assetManifest) {
       if (!definition || !checkVector3(definition.position, `Street ${key} position`)) continue;
       checkSize2(definition.size, `Street ${key} size`);
     }
-    for (const key of ['sidewalk', 'curb', 'gardens']) {
+    for (const key of ['sidewalk', 'curb']) {
       const definition = config.street[key];
       if (!definition || !Object.values(definition).every(Number.isFinite)) add(`Street ${key} dimensions are invalid.`);
     }
@@ -69,8 +69,8 @@ export function validateWorldConfig(config, assetManifest) {
         !positive(crossing.width) || !positive(crossing.depth)) {
       add('Street crosswalk configuration is invalid.');
     }
-    if (!config.street.manhole || !checkVector3(config.street.manhole.position, 'Manhole position') ||
-        !positive(config.street.manhole.radius)) add('Manhole configuration is invalid.');
+    if (config.street.manhole && (!checkVector3(config.street.manhole.position, 'Manhole position') ||
+        !positive(config.street.manhole.radius))) add('Manhole configuration is invalid.');
   }
   const entryPath = config.street?.entryPath;
   if (!entryPath || !positive(entryPath.width) || !positive(entryPath.thickness) ||
