@@ -4,6 +4,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, isInInteractionRange, normalizeMovement, resolveAxisMovement } from './collision.js';
+import { WORLD_CONFIG } from './world/world-config.js';
+import { assertValidWorldConfig } from './world/world-validation.js';
 
 const mount = document.getElementById('game');
 const canvas = document.getElementById('screenCanvas');
@@ -46,10 +48,11 @@ let lastTime = 0;
 let frameTime = 0;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xaebcc0);
-scene.fog = new THREE.FogExp2(0xaebcc0, 0.0082);
+scene.background = new THREE.Color(WORLD_CONFIG.environment.background);
+scene.fog = new THREE.FogExp2(WORLD_CONFIG.environment.fogColor, WORLD_CONFIG.environment.fogDensity);
 const camera = new THREE.PerspectiveCamera(73, 1, 0.08, 180);
-camera.position.set(0, 1.7, 4);
+camera.position.set(...WORLD_CONFIG.spawn.position);
+camera.rotation.set(...WORLD_CONFIG.spawn.rotation, 'YXZ');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.7));
 renderer.shadowMap.enabled = true;
@@ -186,48 +189,69 @@ function addStreetBase() {
   const concrete = makeMaterial(0xb9b6aa, 0.95);
   const curb = makeMaterial(0x9e9e92, 0.96);
   const marking = makeMaterial(0xd8d8cb, 0.95);
-  addPlane(world, 'district-ground', 0, -0.11, 0, 94, 70, grass);
-  addPlane(world, 'street-road', 0, -0.025, 0, 82, 9, asphalt);
+  const street = WORLD_CONFIG.street;
+
+  addPlane(world, 'district-ground', ...street.ground.position, ...street.ground.size, grass);
+  addPlane(world, 'street-road', ...street.road.position, ...street.road.size, asphalt);
+
   for (const side of [-1, 1]) {
-    addPlane(world, `sidewalk-${side}`, 0, 0.015, side * 5.9, 82, 2.45, concrete);
-    addBox(world, `curb-${side}`, 0, -0.03, side * 4.62, 82, 0.16, 0.2, curb);
-    addPlane(world, `front-garden-${side}`, 0, 0.0, side * 14.3, 82, 13, grass);
+    addPlane(world, 'sidewalk-' + side, 0, street.sidewalk.y, side * street.sidewalk.z, street.sidewalk.width, street.sidewalk.depth, concrete);
+    addBox(world, 'curb-' + side, 0, street.curb.y, side * street.curb.z, street.curb.width, street.curb.height, street.curb.depth, curb);
+    addPlane(world, 'front-garden-' + side, 0, street.gardens.y, side * street.gardens.z, street.gardens.width, street.gardens.depth, grass);
   }
-  for (let x = -37; x <= 37; x += 8) {
-    addPlane(world, `lane-dash-${x}`, x, 0.004, 0, 3.6, 0.12, marking);
+
+  const lanes = street.laneMarkings;
+  for (let x = lanes.startX; x <= lanes.endX; x += lanes.step) {
+    addPlane(world, 'lane-dash-' + x, x, lanes.y, 0, lanes.width, lanes.depth, marking);
   }
-  for (const crossingX of [-25, 25]) {
-    for (let i = -4; i <= 4; i += 1) {
-      addPlane(world, `crosswalk-${crossingX}-${i}`, crossingX + i * 0.82, 0.008, 0,
-        0.43, 8.2, marking);
+
+  const crossing = street.crosswalks;
+  for (const centerX of crossing.centersX) {
+    for (let offset = crossing.firstOffset; offset <= crossing.lastOffset; offset += 1) {
+      addPlane(world, 'crosswalk-' + centerX + '-' + offset, centerX + offset * crossing.spacing,
+        crossing.y, 0, crossing.width, crossing.depth, marking);
     }
   }
-  const manhole = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.024, 28), makeMaterial(0x343a38, 0.66, 0.45));
+
+  const manholeConfig = street.manhole;
+  const manhole = new THREE.Mesh(
+    new THREE.CylinderGeometry(manholeConfig.radius, manholeConfig.radius, 0.024, 28),
+    makeMaterial(0x343a38, 0.66, 0.45)
+  );
   manhole.name = 'street-manhole';
-  manhole.position.set(5, 0.01, 0.45);
+  manhole.position.set(...manholeConfig.position);
   manhole.receiveShadow = true;
   world.add(manhole);
 }
 
-async function addBuilding(key, name, x, z, frontSide, height, role = 'house') {
-  const { root } = await createAsset(key, { height, position: [x, 0, z], rotationY: frontSide < 0 ? Math.PI : 0, parent: world, name });
+async function addBuilding(definition) {
+  const { id, asset, position, rotationY = 0, height, role, frontSide } = definition;
+  const { root } = await createAsset(asset, {
+    height, position, rotationY, parent: world, name: id
+  });
   root.userData.role = role;
   root.userData.frontSide = frontSide;
+
   const box = new THREE.Box3().setFromObject(root);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());
+
   if (role === 'house') {
     const doorZ = (frontSide > 0 ? box.max.z : box.min.z) + frontSide * 0.12;
-    const doorPosition = new THREE.Vector3(x, 0, doorZ);
-    const interior = buildInterior({ x, z, frontSide, seed: name });
+    const doorPosition = new THREE.Vector3(position[0], 0, doorZ);
+    const interior = buildInterior({ x: position[0], z: position[2], frontSide, seed: id });
     interior.visible = false;
     scene.add(interior);
-    const house = { name, root, interior, center: new THREE.Vector3(x, 0, z), doorPosition, frontSide, size };
+    const house = {
+      id, name: id, root, interior,
+      center: new THREE.Vector3(position[0], 0, position[2]),
+      doorPosition, frontSide, size
+    };
     houses.push(house);
     interactableDoors.push(house);
-    addCollider(name, center.x, center.z, Math.max(4, size.x * 0.88), Math.max(3.3, size.z * 0.82));
+    addCollider(id, center.x, center.z, Math.max(4, size.x * 0.88), Math.max(3.3, size.z * 0.82));
   } else {
-    addCollider(name, center.x, center.z, size.x * 0.95, size.z * 0.95);
+    addCollider(id, center.x, center.z, size.x * 0.95, size.z * 0.95);
   }
   return root;
 }
@@ -344,60 +368,38 @@ function buildInterior({ x, z, frontSide, seed }) {
 }
 
 async function addStreetProps() {
-  const props = [
-    ['Bench', 0.86, -18, 0, -6.0, 0],
-    ['Bench', 0.86, 18, 0, 6.0, Math.PI],
-    ['Mailbox', 1.0, -14.8, 0, -7.8, 0],
-    ['Mailbox', 1.0, 14.8, 0, 7.8, Math.PI],
-    ['Planter & Bushes', 1.1, -20, 0, -8.1, 0],
-    ['Planter & Bushes', 1.1, 20, 0, 8.1, Math.PI],
-    ['Traffic Light', 4.1, -25, 0, -4.7, 0],
-    ['Traffic Light', 4.1, 25, 0, 4.7, Math.PI],
-    ['Stop sign', 2.05, -34, 0, 6.0, 0],
-    ['Fire hydrant', 0.95, 3.8, 0, -6.2, 0],
-    ['Trash Can', 0.95, 21.5, 0, -6.2, 0],
-    ['Manhole Cover', 0.04, -5, 0.0, 0.6, 0],
-    ['Power Box', 1.45, -18, 0, -8.1, 0],
-    ['Bus Stop', 2.8, 28, 0, 6.9, Math.PI],
-    ['Bus stop sign', 2.0, 29.7, 0, 6.5, Math.PI],
-    ['Greenhouse', 2.4, -26, 0, -14.0, 0],
-    ['Dumpster', 1.55, 25, 0, -10.4, 0],
-    ['Air conditioner', 0.8, -10, 6.5, -12.8, Math.PI],
-    ['Washing Line', 1.75, 10, 0, 13.2, 0]
-  ];
-  await Promise.all(props.map(async ([key, height, x, y, z, yaw]) => {
-    const { root } = await createAsset(key, { height, position: [x, y, z], rotationY: yaw, parent: world, name: `street-${key.toLowerCase().replaceAll(' ', '-')}` });
-    if (['Bench', 'Mailbox', 'Planter & Bushes', 'Traffic Light', 'Stop sign', 'Fire hydrant', 'Trash Can'].includes(key)) {
-      const box = new THREE.Box3().setFromObject(root);
-      const size = box.getSize(new THREE.Vector3());
-      const center = box.getCenter(new THREE.Vector3());
-      const solidProps = new Set([
-        'Bench', 'Mailbox', 'Planter & Bushes', 'Traffic Light', 'Stop sign',
-        'Fire hydrant', 'Trash Can', 'Power Box', 'Bus Stop', 'Bus stop sign',
-        'Greenhouse', 'Dumpster', 'Washing Line'
-      ]);
-      if (solidProps.has(key)) {
-        const scale = key === 'Planter & Bushes' ? 0.62 : 0.82;
-        addObjectCollider(root, `prop-${key}`, scale, 0.34);
-      }
+  await Promise.all(WORLD_CONFIG.streetProps.map(async (definition) => {
+    const { id, asset, height, position, rotationY = 0, collision } = definition;
+    const { root } = await createAsset(asset, {
+      height, position, rotationY, parent: world, name: id
+    });
+    if (collision) {
+      addObjectCollider(root, 'prop-' + id, collision.scale, collision.minSize);
     }
   }));
 
-  const fenceMaterial = makeMaterial(0x68736a, 0.82, 0.18);
-  const fenceAsset = await loadGLTF('Fence');
+  const fenceConfig = WORLD_CONFIG.fences;
+  const fenceAsset = await loadGLTF(fenceConfig.asset);
   const fenceBase = fenceAsset.scene;
-  for (const side of [-1, 1]) {
-    for (let i = 0; i < 9; i += 1) {
+
+  for (const side of fenceConfig.sides) {
+    for (let index = 0; index < fenceConfig.count; index += 1) {
       const root = fenceBase.clone(true);
-      normalizeToHeight(root, 1.1);
-      root.position.set(-17 + i * 1.15, 0, side * 10.1);
-      root.rotation.y = side > 0 ? Math.PI : 0;
-      root.traverse((obj) => {
-        if (obj.isMesh && obj.material?.color) obj.material.color.lerp(fenceMaterial.color, 0.15);
+      root.traverse((object) => {
+        if (!object.isMesh) return;
+        if (Array.isArray(object.material)) object.material = object.material.map((material) => material.clone());
+        else if (object.material) object.material = object.material.clone();
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of materials) {
+          if (material && material.color) material.color.lerp(new THREE.Color(0x68736a), 0.15);
+        }
       });
+      normalizeToHeight(root, fenceConfig.height);
+      root.position.set(fenceConfig.startX + index * fenceConfig.spacing, 0, side * fenceConfig.z);
+      root.rotation.y = side > 0 ? Math.PI : 0;
       shadowify(root);
       world.add(root);
-      addObjectCollider(root, `fence-${side}-${i}`, 0.92, 0.22);
+      addObjectCollider(root, 'fence-' + side + '-' + index, fenceConfig.collision.scale, fenceConfig.collision.minSize);
     }
   }
 }
@@ -405,38 +407,32 @@ async function addStreetProps() {
 function addStreetLights() {
   const pole = makeMaterial(0x363e3b, 0.4, 0.72);
   const glow = new THREE.MeshStandardMaterial({ color: 0xf2e5c7, emissive: 0xffdba1, emissiveIntensity: 1.2 });
-  for (const side of [-1, 1]) {
-    for (const x of [-30, -10, 10, 30]) {
+  const config = WORLD_CONFIG.streetLights;
+
+  for (const side of config.sides) {
+    for (const x of config.positionsX) {
       const root = new THREE.Group();
-      root.position.set(x, 0, side * 5.95);
-      addBox(root, 'lamp-post', 0, 0, 0, 0.12, 4.4, 0.12, pole);
-      addBox(root, 'lamp-arm', side > 0 ? 0.38 : -0.38, 4.18, 0, 0.9, 0.1, 0.1, pole);
-      addBox(root, 'lamp-head', side > 0 ? 0.74 : -0.74, 4.02, 0, 0.42, 0.14, 0.28, glow, false);
+      root.position.set(x, 0, side * config.z);
+      addBox(root, 'lamp-post', 0, 0, 0, 0.12, config.poleHeight, 0.12, pole);
+      addBox(root, 'lamp-arm', side > 0 ? 0.38 : -0.38, config.poleHeight - 0.22, 0, 0.9, 0.1, 0.1, pole);
+      addBox(root, 'lamp-head', side > 0 ? 0.74 : -0.74, config.poleHeight - 0.38, 0, 0.42, 0.14, 0.28, glow, false);
       const light = new THREE.PointLight(0xffe2b0, 0.42, 9, 2);
-      light.position.set(side > 0 ? 0.72 : -0.72, 3.95, 0);
+      light.position.set(side > 0 ? 0.72 : -0.72, config.poleHeight - 0.45, 0);
       root.add(light);
       world.add(root);
-      addCollider(`street-light-${side}-${x}`, x, side * 5.95, 0.24, 0.24);
+      addCollider('street-light-' + side + '-' + x, x, side * config.z, 0.24, 0.24);
     }
   }
 }
 
 async function addVehicles() {
-  const configs = [
-    { key: 'Car', height: 1.42, x: -28, z: -1.62, dir: 1, speed: 7.2 },
-    { key: 'SUV', height: 1.53, x: -9, z: 1.62, dir: -1, speed: 5.8 },
-    { key: 'Pickup Truck', height: 1.58, x: 12, z: -1.62, dir: 1, speed: 6.1 },
-    { key: 'Police Car', height: 1.4, x: 28, z: 1.62, dir: -1, speed: 7.4 },
-    { key: 'Van', height: 1.55, x: -18, z: 1.62, dir: -1, speed: 5.2 },
-    { key: 'Bus', height: 3.05, x: 4, z: -1.68, dir: 1, speed: 3.7 }
-  ];
-  for (const [index, config] of configs.entries()) {
-    const { root } = await createAsset(config.key, {
-      height: config.height,
-      position: [config.x, 0, config.z],
-      rotationY: config.dir > 0 ? Math.PI / 2 : -Math.PI / 2,
-      parent: world,
-      name: `traffic-${index}-${config.key}`
+  for (const definition of WORLD_CONFIG.vehicles) {
+    const { id, asset, height, position, direction, speed, route } = definition;
+    const rotationY = route.axis === 'x'
+      ? (direction > 0 ? Math.PI / 2 : -Math.PI / 2)
+      : (direction > 0 ? 0 : Math.PI);
+    const { root } = await createAsset(asset, {
+      height, position, rotationY, parent: world, name: id
     });
     const wheelNodes = [];
     root.traverse((object) => {
@@ -446,7 +442,7 @@ async function addVehicles() {
     const vehicleSize = vehicleBounds.getSize(new THREE.Vector3());
     const vehicleCenter = vehicleBounds.getCenter(new THREE.Vector3());
     vehicles.push({
-      root, wheelNodes, ...config,
+      id, root, wheelNodes, asset, direction, speed, route,
       colliderOffsetX: vehicleCenter.x - root.position.x,
       colliderOffsetZ: vehicleCenter.z - root.position.z,
       colliderHalfWidth: Math.max(1.05, vehicleSize.x * 0.4),
@@ -456,23 +452,25 @@ async function addVehicles() {
 }
 
 async function addPedestrians() {
-  await Promise.all([
-    addAnimatedActor('Man', 1.82, [-24, 0, -6.0], { min: -26, max: 22, z: -6.0 }, 0.78, 'walk-man-a'),
-    addAnimatedActor('Animated Woman', 1.78, [20, 0, 6.0], { min: -20, max: 25, z: 6.0 }, 0.64, 'walk-woman-a'),
-    addAnimatedActor('Adventurer', 1.72, [-8, 0, -6.2], { min: -23, max: 23, z: -6.2 }, 0.55, 'walk-adventurer'),
-    addAnimatedActor('Animated Woman-nIItLV9nxS', 1.76, [8, 0, 6.25], { min: -24, max: 24, z: 6.25 }, 0.72, 'walk-woman-b')
-  ]);
+  await Promise.all(WORLD_CONFIG.pedestrians.map((definition) =>
+    addAnimatedActor(
+      definition.asset,
+      definition.height,
+      definition.position,
+      definition.path,
+      definition.speed,
+      definition.id
+    )
+  ));
 }
 
 function addTrees() {
-  const treeSpots = [
-    [-27, -16], [-21, -19], [-5, -17], [6, -17], [22, -18], [29, -14],
-    [-27, 16], [-21, 19], [-5, 17], [6, 17], [22, 18], [29, 14]
-  ];
-  return Promise.all(treeSpots.map(async ([x, z], i) => {
-    const { root } = await createAsset('Tree', { height: 7.1 + (i % 3) * 0.35, position: [x, 0, z], parent: world, name: `street-tree-${i}` });
-    // Use a trunk-sized footprint, not the full crown bounding box.
-    addCollider(`tree-trunk-${i}`, x, z, 0.68, 0.68);
+  return Promise.all(WORLD_CONFIG.trees.map(async (definition) => {
+    const { id, position, height } = definition;
+    const { root } = await createAsset('Tree', {
+      height, position, parent: world, name: id
+    });
+    addCollider('trunk-' + id, position[0], position[2], 0.68, 0.68);
     return root;
   }));
 }
@@ -525,7 +523,7 @@ function canPlayerOccupy(x, z) {
     if (!canOccupy(local.x, local.z, playerRadius, localBounds)) return false;
     return canOccupy(x, z, playerRadius, null, currentInterior.interior.userData.collisionBoxes || []);
   }
-  const worldBounds = { minX: -40, maxX: 40, minZ: -29, maxZ: 29 };
+  const worldBounds = WORLD_CONFIG.bounds;
   return canOccupy(x, z, playerRadius, worldBounds, [...colliders, ...getMovingActorColliders()]);
 }
 function movePlayer(delta) {
@@ -621,18 +619,34 @@ function interact() {
 
 function animateActors(delta) {
   for (const mixer of mixers) mixer.update(delta);
+
   for (const walker of walkers) {
-    walker.root.position.x += walker.speed * walker.direction * delta;
-    if (walker.root.position.x > walker.path.max) { walker.root.position.x = walker.path.max; walker.direction = -1; walker.root.rotation.y = -Math.PI / 2; }
-    if (walker.root.position.x < walker.path.min) { walker.root.position.x = walker.path.min; walker.direction = 1; walker.root.rotation.y = Math.PI / 2; }
+    const axis = walker.path.axis || 'x';
+    const next = walker.root.position[axis] + walker.speed * walker.direction * delta;
+    if (next > walker.path.max) {
+      walker.root.position[axis] = walker.path.max;
+      walker.direction = -1;
+      walker.root.rotation.y = axis === 'x' ? -Math.PI / 2 : Math.PI;
+    } else if (next < walker.path.min) {
+      walker.root.position[axis] = walker.path.min;
+      walker.direction = 1;
+      walker.root.rotation.y = axis === 'x' ? Math.PI / 2 : 0;
+    } else {
+      walker.root.position[axis] = next;
+    }
   }
+
   for (const vehicle of vehicles) {
-    vehicle.root.position.x += vehicle.speed * vehicle.dir * delta;
-    if (vehicle.dir > 0 && vehicle.root.position.x > 44) vehicle.root.position.x = -44;
-    if (vehicle.dir < 0 && vehicle.root.position.x < -44) vehicle.root.position.x = 44;
+    const axis = vehicle.route.axis;
+    const next = vehicle.root.position[axis] + vehicle.speed * vehicle.direction * delta;
+    if (next > vehicle.route.max) vehicle.root.position[axis] = vehicle.route.min;
+    else if (next < vehicle.route.min) vehicle.root.position[axis] = vehicle.route.max;
+    else vehicle.root.position[axis] = next;
+
     for (const wheel of vehicle.wheelNodes) wheel.rotation.x += vehicle.speed * delta * 1.4;
   }
 }
+
 function updateUI() {
   coordinates.textContent = `X ${camera.position.x.toFixed(1)} · Z ${camera.position.z.toFixed(1)}`;
   const active = currentInterior || nearestDoor();
@@ -653,23 +667,21 @@ async function initWorld() {
   if (!response.ok) throw new Error(`Cannot load asset manifest (${response.status}).`);
   manifest = await response.json();
   addStreetBase();
-  addStreetLights();
   buildBackdrop();
+
+  assertValidWorldConfig(WORLD_CONFIG, manifest);
 
   const steps = [
     ['Buildings', async () => {
-      await addBuilding('Building Green', 'house-a', -10.5, -12.5, 1, 10.1, 'house');
-      await addBuilding('Building Red', 'house-b', 10.5, 12.5, -1, 10.1, 'house');
-      await addBuilding('Building Red Corner', 'city-corner-west', -26.5, -17.5, 1, 13.5, 'backdrop');
-      await addBuilding('Brown Building', 'city-brown-east', 27.5, 17.5, -1, 15.5, 'backdrop');
-      await addBuilding('Big Building', 'city-center-background', 0, -25.8, 1, 17.0, 'backdrop');
-      await addBuilding('Small Building', 'city-low-south', 0, 25.5, -1, 9.2, 'backdrop');
+      await Promise.all(WORLD_CONFIG.buildings.map(addBuilding));
       await Promise.all(houses.map(buildInteriorEntranceMarker));
     }],
     ['Street assets', addStreetProps],
+    ['Street lights', addStreetLights],
     ['Greenery', addTrees],
     ['Traffic', addVehicles],
     ['Pedestrians', addPedestrians]
+  ];
   ];
 
   for (let i = 0; i < steps.length; i += 1) {
@@ -714,8 +726,6 @@ renderer.setAnimationLoop((time) => {
     movePlayer(delta);
     animateActors(delta);
     updateUI();
-  } else if (gameStarted) {
-    animateActors(delta * 0.5);
   }
   renderer.render(scene, camera);
   if (frameTime > 1) {
