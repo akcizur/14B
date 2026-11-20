@@ -58,7 +58,13 @@ export function validateWorldConfig(config, assetManifest) {
       if (typeof item.asset !== 'string' || !assetManifest?.[item.asset]) {
         add(`World entity "${item.id || '(unnamed)'}" references missing asset "${item.asset}".`);
       }
-      checkVector3(item.position, `World entity "${item.id || '(unnamed)'}" position`);
+      const validPosition = checkVector3(item.position, `World entity "${item.id || '(unnamed)'}" position`);
+      if (validPosition && bounds) {
+        const [x, , z] = item.position;
+        if (x < bounds.minX || x > bounds.maxX || z < bounds.minZ || z > bounds.maxZ) {
+          add(`World entity "${item.id}" is outside world bounds.`);
+        }
+      }
       if (!Number.isFinite(item.height) || item.height <= 0) {
         add(`World entity "${item.id || '(unnamed)'}" needs a positive height.`);
       }
@@ -100,9 +106,16 @@ export function validateWorldConfig(config, assetManifest) {
 
   if (config.fences) {
     if (!assetManifest?.[config.fences.asset]) add(`Fence system references missing asset "${config.fences.asset}".`);
-    for (const key of ['height', 'startX', 'count', 'spacing', 'z']) {
+    for (const key of ['height', 'startX', 'spacing', 'z']) {
       if (!Number.isFinite(config.fences[key])) add(`Fence configuration has invalid ${key}.`);
     }
+    if (!Number.isInteger(config.fences.count) || config.fences.count < 0) add('Fence count must be a non-negative integer.');
+    if (!Array.isArray(config.fences.sides) || !config.fences.sides.every((side) => [-1, 1].includes(side))) {
+      add('Fence sides must be an array containing only -1 and 1.');
+    }
+    if (!config.fences.collision || !Number.isFinite(config.fences.collision.scale) ||
+        config.fences.collision.scale <= 0 || !Number.isFinite(config.fences.collision.minSize) ||
+        config.fences.collision.minSize <= 0) add('Fence collision profile is invalid.');
   }
 
   if (bounds && config.spawn?.position && config.spawn.position.length === 3 &&
@@ -119,7 +132,7 @@ export function validateWorldConfig(config, assetManifest) {
 export function assertValidWorldConfig(config, assetManifest) {
   const errors = validateWorldConfig(config, assetManifest);
   if (errors.length) {
-    throw new Error(`Invalid world configuration:\\n- ${errors.join('\\n- ')}`);
+    throw new Error('Invalid world configuration:\n- ' + errors.join('\n- '));
   }
   return true;
 }
