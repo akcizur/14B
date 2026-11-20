@@ -42,7 +42,8 @@ test('imported wheel nodes are reparented to centered pivots without changing th
   const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
   assert.match(source, /const centerWorld = wheelBounds\.getCenter/);
   assert.match(source, /const centerLocal = root\.worldToLocal\(centerWorld\.clone\(\)\)/);
-  assert.match(source, /pivot\.attach\(wheelNode\)/);
+  assert.match(source, /attachWheelPivot\(root, wheelNode, radius\)/);
+  assert.match(source, /spinWheel\(wheel, angle\)/);
   assert.match(source, /wheel\.pivot\.rotateX\(angle\)/);
   assert.doesNotMatch(source, /wheel\.object\.rotation\.x/);
 });
