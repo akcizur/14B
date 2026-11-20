@@ -83,18 +83,18 @@ export const WORLD_CONFIG = {
   },
 
   trees: [
-    { id: 'tree-01', position: [-27, 0, -16], height: 7.1 },
-    { id: 'tree-02', position: [-21, 0, -19], height: 7.45 },
-    { id: 'tree-03', position: [-5, 0, -17], height: 7.8 },
-    { id: 'tree-04', position: [6, 0, -17], height: 7.1 },
-    { id: 'tree-05', position: [22, 0, -18], height: 7.45 },
-    { id: 'tree-06', position: [29, 0, -14], height: 7.8 },
-    { id: 'tree-07', position: [-27, 0, 16], height: 7.1 },
-    { id: 'tree-08', position: [-21, 0, 19], height: 7.45 },
-    { id: 'tree-09', position: [-5, 0, 17], height: 7.8 },
-    { id: 'tree-10', position: [6, 0, 17], height: 7.1 },
-    { id: 'tree-11', position: [22, 0, 18], height: 7.45 },
-    { id: 'tree-12', position: [29, 0, 14], height: 7.8 }
+    { id: 'tree-01', asset: 'Tree', position: [-27, 0, -16], height: 7.1 },
+    { id: 'tree-02', asset: 'Tree', position: [-21, 0, -19], height: 7.45 },
+    { id: 'tree-03', asset: 'Tree', position: [-5, 0, -17], height: 7.8 },
+    { id: 'tree-04', asset: 'Tree', position: [6, 0, -17], height: 7.1 },
+    { id: 'tree-05', asset: 'Tree', position: [22, 0, -18], height: 7.45 },
+    { id: 'tree-06', asset: 'Tree', position: [29, 0, -14], height: 7.8 },
+    { id: 'tree-07', asset: 'Tree', position: [-27, 0, 16], height: 7.1 },
+    { id: 'tree-08', asset: 'Tree', position: [-21, 0, 19], height: 7.45 },
+    { id: 'tree-09', asset: 'Tree', position: [-5, 0, 17], height: 7.8 },
+    { id: 'tree-10', asset: 'Tree', position: [6, 0, 17], height: 7.1 },
+    { id: 'tree-11', asset: 'Tree', position: [22, 0, 18], height: 7.45 },
+    { id: 'tree-12', asset: 'Tree', position: [29, 0, 14], height: 7.8 }
   ],
 
   vehicles: [
