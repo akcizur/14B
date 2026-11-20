@@ -1,6 +1,6 @@
 # DISTRICT 14 — Remake
 
-Asset-driven Three.js first-person neighborhood built from the supplied GLB collection. The remake is the root experience. The separately maintained City Courier arcade mode remains available at `/city-courier/`.
+Asset-driven Three.js first-person neighborhood designed as one continuous Free Play / Sandbox world. There are no missions, score systems or rule-based game modes in this development stage.
 
 ## Main experience
 
@@ -9,8 +9,8 @@ Asset-driven Three.js first-person neighborhood built from the supplied GLB coll
 - 68 locally stored GLB models covering residential buildings, street props, vehicles, pedestrians and interior objects. Only models referenced by the manifest are fetched; assets are cached after the first load.
 - Animated pedestrians and moving road traffic, including animated wheel nodes when supplied by the model.
 - Daylight, soft fog, shadow mapping, tone mapping and a restrained CRT/grain-inspired interface.
-- Loading screen, welcome screen, pause handling, coordinates and in-game clock.
-- Walk/run movement with wall, building, street-prop and large-furniture collision; diagonal movement slides along obstacles.
+- Loading and welcome screens, pause handling, coordinates and local device clock.
+- Normalized walk/run movement with swept collision checks, obstacle sliding, static street/building collisions, moving vehicle and pedestrian collision footprints, and furniture collision inside both interiors.
 
 ## Run locally
 
@@ -45,8 +45,11 @@ npm run preview
 - `src/collision.js`: shared circle-versus-box collision and wall-sliding movement helpers.
 - `src/styles.css`: HUD, loading, welcome and pause interface.
 - `public/models/`: 68 selected local GLB assets and `manifest.json`.
-- `public/city-courier/`: separate City Courier arcade mode.
 - `tests/`: world-system and asset integrity regression tests.
+
+## Current scope
+
+District 14 currently contains one open Free Play / Sandbox world. A possible future Rules World is intentionally out of scope and will only be considered after the sandbox is reviewed and approved.
 
 ## Asset licensing
 
