@@ -53,6 +53,10 @@ npm run preview
 
 See [World Architecture](docs/WORLD-ARCHITECTURE.md) for the design principles, current data-driven foundation, target module structure and future open-world scaling stages.
 
+## World architecture
+
+See [World Architecture](docs/WORLD-ARCHITECTURE.md) for architecture principles, the current data-driven foundation, target module boundaries and the open-world scaling path.
+
 ## Current scope
 
 District 14 currently contains one open Free Play / Sandbox world. A possible future Rules World is intentionally out of scope and will only be considered after the sandbox is reviewed and approved.
