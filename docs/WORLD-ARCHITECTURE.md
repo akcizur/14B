@@ -16,7 +16,7 @@ The only active game mode remains **Free Play / Sandbox**. Rules World, missions
 3. **Validate before building.** Missing assets, duplicate IDs, invalid transforms, out-of-bounds placements and malformed collision/route data must fail before runtime creates a partial world.
 4. **Explicit collision policy.** Every world entity declares a collision profile or explicitly opts out with `collision: false`. No invisible collision assumptions.
 5. **Runtime systems own behavior.** Configuration describes what exists; runtime modules own loading, animation, movement, interaction, collision and disposal.
-6. **Independent content collections.** Buildings, street props, vegetation, traffic and pedestrians are separate editable collections. Interior layouts and road networks will be moved into dedicated definitions next.
+6. **Independent content collections.** Buildings, street props, vegetation, traffic and pedestrians are separate editable collections. Interior architecture is now generated from measured building bounds, and entrance paths are tied to real doorway anchors. Furniture remains a separate future content layer.
 7. **No premature procedural generation.** First make hand-authored content robust and validated. Add procedural tools only after the data contract is stable.
 8. **Profile before optimizing.** Keep visual quality until measurements show where load time, memory or frame time are being spent.
 
@@ -47,6 +47,7 @@ src/
   world/
     world-config.js            # current data-driven world catalog
     world-validation.js        # current preflight validator
+    building-architecture.js   # measured shell bounds, floors, stairs, room partitions and glazing
     worlds/
       district-14/
         world.config.js
@@ -104,7 +105,7 @@ Specialized data:
 ## Open-world scaling path
 
 ### 1. Validated content authoring
-Move interior layouts, door anchors, room bounds, road networks and environment presets out of `main.js`. The editor-facing catalog must remain the single source of truth.
+Building interiors now derive their usable dimensions from each loaded GLB shell. Storey count is configured per building; floor slabs, stair openings, corridors, partition doors, window openings and glazing are generated in the building's measured local frame. Entrance anchors drive both interaction and the exterior footpath. Furniture and decorative equipment are intentionally deferred. The editor-facing catalog remains the single source of truth.
 
 ### 2. Modular runtime
 Extract asset loading, entity creation, player movement, collision, interaction, vehicle traffic and pedestrian simulation into modules with explicit inputs and lifecycle methods. Avoid hidden cross-module global arrays.
