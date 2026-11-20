@@ -1,16 +1,17 @@
-# DISTRICT 14 — Remake
+# DISTRICT 14
 
-Asset-driven Three.js first-person urban open world, currently delivered as one continuous Free Play / Sandbox experience. World placement is defined in validated data catalogs so districts, buildings, props, interiors, traffic and pedestrians can be extended independently.
+District 14 is a Three.js + Vite first-person neighbourhood sandbox. The world is being rebuilt as a deliberately small, dimensionally consistent settlement rather than a crowded showcase.
 
-## Main experience
+## Current playable slice
 
-- First-person exploration of a compact residential district, with pointer-lock mouse look.
-- Two enterable, three-storey structural interiors generated to the measured exterior building dimensions, with room divisions, stairwells, windows and glazing. Furniture is intentionally deferred.
-- 68 locally stored GLB models covering residential buildings, street props, vehicles, pedestrians and interior objects. Only models referenced by the manifest are fetched; assets are cached after the first load.
-- Animated pedestrians and moving road traffic, including animated wheel nodes when supplied by the model.
-- Daylight, soft fog, shadow mapping, tone mapping and a restrained CRT/grain-inspired interface.
-- Loading and welcome screens, pause handling, coordinates and local device clock.
-- Normalized walk/run movement with swept collision checks, obstacle sliding, static street/building collisions, moving vehicle and pedestrian collision footprints, and architectural wall/doorway collision and walkable stair transitions inside both interiors.
+- One primary road corridor with sidewalks and a pedestrian crossing.
+- One reference house on one parcel.
+- Three structural storeys generated from the measured dimensions of the house's local GLB shell.
+- Interior floor slabs, wall thickness, a U-shaped stair core, corridor, room divisions, door openings, window apertures, frames and glazing.
+- A real exterior-to-sidewalk access path derived from the house's doorway transform.
+- No furniture, appliances, loose decoration, traffic, pedestrians, perimeter clutter or extra buildings in this stage.
+
+The model catalogue remains in `public/models/` for later expansion. Only assets referenced by the current world definition are loaded at runtime.
 
 ## Run locally
 
@@ -21,7 +22,7 @@ npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite. For a production build:
+For checks and a production build:
 
 ```sh
 npm test
@@ -35,37 +36,47 @@ npm run preview
 |---|---|
 | `W A S D` or arrow keys | Move |
 | `Shift` | Run |
-| Mouse | Look around |
-| `E` | Enter / exit a house |
+| Mouse | Look |
+| `E` | Enter / exit the house |
 | `Esc` | Pause / release mouse |
+
+## World growth model
+
+The editable hierarchy is intentionally explicit:
+
+```text
+District
+└── Street
+    └── Parcel
+        └── Building
+            ├── Stairwell
+            ├── Ground floor
+            │   └── Rooms
+            ├── First floor
+            │   └── Rooms
+            └── Second floor
+                └── Rooms
+```
+
+Future houses are added as new parcels along the existing street. Only after the street frontage, plot dimensions, building access and house scale are stable do we add further streets, junctions and blocks. The current scene is the scale reference for those additions.
 
 ## Project layout
 
-- `src/main.js`: application bootstrap and runtime orchestration.
-- `src/world/world-config.js`: editable world catalog for map geometry, buildings, street props, vegetation, traffic and pedestrians.
-- `src/world/world-validation.js`: validates entity IDs, model references, transforms, collision profiles, routes and building architecture before scene creation.
-- `src/world/building-architecture.js`: measures each building model and generates dimension-matched multi-storey floorplates, partitions, stair flights, window openings, frames and glazing.
-- `src/collision.js`: reusable circle/AABB collision, swept movement, directional interaction and normalized input helpers.
-- `src/styles.css`: HUD, loading, welcome and pause interface.
-- `public/models/`: 68 selected local GLB assets and `manifest.json`.
-- `tests/`: world-system and asset integrity regression tests.
+- `src/main.js`: runtime, scene creation, input and interaction.
+- `src/world/world-config.js`: editable road, parcel building definitions and settlement hierarchy.
+- `src/world/world-validation.js`: validates world entities, model keys, dimensions and collision definitions.
+- `src/world/world-hierarchy.js`: validates the district → street → parcel → building → storey → room hierarchy.
+- `src/world/building-architecture.js`: measures GLB shells and builds dimension-matched floorplates, stair flights, partitions, wall openings, window frames and glass.
+- `src/collision.js`: player movement and collision helpers.
+- `public/models/`: local GLB asset library and manifest.
+- `tests/`: world, hierarchy, building geometry, stairs, GLB and collision regression tests.
 
-## World architecture
+See [World Architecture](docs/WORLD-ARCHITECTURE.md) and [Settlement Growth](docs/SETTLEMENT-GROWTH.md) for the current design constraints.
 
-See [World Architecture](docs/WORLD-ARCHITECTURE.md) for the design principles, current data-driven foundation, target module structure and future open-world scaling stages.
+## Scope
 
-## World architecture
+The only active mode remains Free Play / Sandbox. No missions, progression, scoring, Rules World or other game mode is being introduced.
 
-See [World Architecture](docs/WORLD-ARCHITECTURE.md) for architecture principles, the current data-driven foundation, target module boundaries and the open-world scaling path.
+## Assets
 
-## Current scope
-
-District 14 currently contains one open Free Play / Sandbox world. A possible future Rules World is intentionally out of scope and will only be considered after the sandbox is reviewed and approved.
-
-## Asset licensing
-
-The supplied asset archive did not include a complete license manifest. The models are kept local and are not hotlinked, but confirm each original asset's license and attribution requirements before wider public distribution.
-
-## Notes
-
-This is an asset-driven remake, not a binary conversion of the earlier DWG house. The DWG remains a separate CAD source. Building shells remain the supplied GLB models. Playable interior structure is generated from each shell's measured GLB bounds; furniture and decorative equipment are deliberately deferred.
+The supplied asset archive did not include a complete license manifest. Confirm the original asset licences and attribution requirements before wider public distribution. The project keeps the models locally and does not hotlink third-party model files.
