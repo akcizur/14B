@@ -28,14 +28,15 @@ export const WORLD_CONFIG = {
     sidewalk: { z: 5.9, width: 82, depth: 2.45, y: 0.015 },
     curb: { z: 4.62, width: 82, depth: 0.2, height: 0.16, y: -0.03 },
     gardens: { z: 14.3, width: 82, depth: 13, y: 0 },
+    entryPath: { width: 1.5, thickness: 0.07, thresholdDepth: 0.8 },
     laneMarkings: { startX: -37, endX: 37, step: 8, width: 3.6, depth: 0.12, y: 0.004 },
     crosswalks: { centersX: [-25, 25], firstOffset: -4, lastOffset: 4, spacing: 0.82, width: 0.43, depth: 8.2, y: 0.008 },
     manhole: { position: [5, 0.01, 0.45], radius: 0.38 }
   },
 
   buildings: [
-    { id: 'house-a', asset: 'Building Green', position: [-10.5, 0, -12.5], height: 10.1, rotationY: 0, role: 'house', frontSide: 1, collision: { type: 'bounds', scaleX: 0.88, scaleZ: 0.82, minWidth: 4, minDepth: 3.3 } },
-    { id: 'house-b', asset: 'Building Red', position: [10.5, 0, 12.5], height: 10.1, rotationY: Math.PI, role: 'house', frontSide: -1, collision: { type: 'bounds', scaleX: 0.88, scaleZ: 0.82, minWidth: 4, minDepth: 3.3 } },
+    { id: 'house-a', asset: 'Building Green', position: [-10.5, 0, -12.5], height: 10.1, rotationY: 0, role: 'house', frontSide: 1, architecture: { storeys: 3 }, collision: { type: 'bounds', scaleX: 0.88, scaleZ: 0.82, minWidth: 4, minDepth: 3.3 } },
+    { id: 'house-b', asset: 'Building Red', position: [10.5, 0, 12.5], height: 10.1, rotationY: Math.PI, role: 'house', frontSide: -1, architecture: { storeys: 3 }, collision: { type: 'bounds', scaleX: 0.88, scaleZ: 0.82, minWidth: 4, minDepth: 3.3 } },
     { id: 'city-corner-west', asset: 'Building Red Corner', position: [-26.5, 0, -17.5], height: 13.5, rotationY: 0, role: 'backdrop', collision: { type: 'bounds', scaleX: 0.95, scaleZ: 0.95, minWidth: 0.3, minDepth: 0.3 } },
     { id: 'city-brown-east', asset: 'Brown Building', position: [27.5, 0, 17.5], height: 15.5, rotationY: Math.PI, role: 'backdrop', collision: { type: 'bounds', scaleX: 0.95, scaleZ: 0.95, minWidth: 0.3, minDepth: 0.3 } },
     { id: 'city-center-background', asset: 'Big Building', position: [0, 0, -25.8], height: 17.0, rotationY: 0, role: 'backdrop', collision: { type: 'bounds', scaleX: 0.95, scaleZ: 0.95, minWidth: 0.3, minDepth: 0.3 } },
@@ -71,7 +72,7 @@ export const WORLD_CONFIG = {
     startX: -17,
     count: 9,
     spacing: 1.15,
-    z: 10.1,
+    z: 20.45,
     collision: { type: 'bounds', scale: 0.92, minSize: 0.22 }
   },
 
