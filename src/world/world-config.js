@@ -103,8 +103,8 @@ export const WORLD_CONFIG = {
     { id: 'traffic-suv-east', asset: 'SUV', height: 1.53, position: [-9, 0, 1.62], direction: -1, speed: 5.8, route: { axis: 'x', min: -44, max: 44 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } },
     { id: 'traffic-pickup-west', asset: 'Pickup Truck', height: 1.58, position: [12, 0, -1.62], direction: 1, speed: 6.1, route: { axis: 'x', min: -44, max: 44 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } },
     { id: 'traffic-police-east', asset: 'Police Car', height: 1.4, position: [28, 0, 1.62], direction: -1, speed: 7.4, route: { axis: 'x', min: -44, max: 44 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } },
-    { id: 'traffic-van-east', asset: 'Van', height: 1.55, position: [-18, 0, 1.62], direction: -1, speed: 5.2, route: { axis: 'x', min: -44, max: 44 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } },
-    { id: 'traffic-bus-west', asset: 'Bus', height: 3.05, position: [4, 0, -1.68], direction: 1, speed: 3.7, route: { axis: 'x', min: -44, max: 44 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } }
+    { id: 'traffic-van-east', asset: 'Van', height: 1.55, position: [-18, 0, 1.62], direction: -1, speed: 5.2, route: { axis: 'x', min: -44, max: 44 }, wheelLayout: { radius: 0.29, width: 0.15, lateralRatio: 0.41, longitudinalRatio: 0.32 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } },
+    { id: 'traffic-bus-west', asset: 'Bus', height: 3.05, position: [4, 0, -1.68], direction: 1, speed: 3.7, route: { axis: 'x', min: -44, max: 44 }, wheelLayout: { radius: 0.44, width: 0.22, lateralRatio: 0.42, longitudinalRatio: 0.34 }, collision: { type: 'bounds', scaleX: 0.4, scaleZ: 0.4, minHalfWidth: 1.05, minHalfDepth: 0.62 } }
   ],
 
   pedestrians: [

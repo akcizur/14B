@@ -38,10 +38,23 @@ test('house and pedestrian interactions are selected by proximity, not reticle a
 });
 
 
-test('fallback vehicle wheels are positioned in normalized root-local space', () => {
+test('imported wheel nodes use the shared centered pivot rig and preserve the GLB rest transform', () => {
   const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
-  assert.match(source, /worldSize\.x \/ scaleX/);
-  assert.match(source, /worldCenter\.x - root\.position\.x/);
-  assert.match(source, /localBounds\.min\.y - root\.position\.y\) \/ scaleY/);
-  assert.match(source, /createFallbackVehicleWheels\(root, height\)/);
+  const rig = fs.readFileSync(path.join(root, 'src', 'vehicles', 'wheel-rig.js'), 'utf8');
+  assert.match(source, /attachWheelPivot\(root, wheelNode, radius\)/);
+  assert.match(source, /spinWheel\(wheel, angle\)/);
+  assert.match(rig, /const worldCenter = bounds\.getCenter/);
+  assert.match(rig, /const localCenter = root\.worldToLocal\(worldCenter\.clone\(\)\)/);
+  assert.match(rig, /pivot\.attach\(wheelNode\)/);
+  assert.match(rig, /wheel\.pivot\.rotateX\(radians\)/);
+  assert.doesNotMatch(source, /wheel\.object\.rotation\.x/);
+});
+
+test('merged Van and Bus assets use explicit model-specific wheel layouts', () => {
+  const config = fs.readFileSync(path.join(root, 'src', 'world', 'world-config.js'), 'utf8');
+  const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+  assert.match(config, /asset: 'Van'.*wheelLayout: \{ radius: 0\.29/);
+  assert.match(config, /asset: 'Bus'.*wheelLayout: \{ radius: 0\.44/);
+  assert.match(source, /createFallbackVehicleWheels\(root, wheelLayout\)/);
+  assert.match(source, /tyre\.rotation\.z = Math\.PI \/ 2/);
 });

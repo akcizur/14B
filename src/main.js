@@ -4,6 +4,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
+import { attachWheelPivot, extractMergedWheelComponents, spinWheel } from './vehicles/wheel-rig.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -432,97 +433,127 @@ function addStreetLights() {
   }
 }
 
-function createFallbackVehicleWheels(root, height) {
+/**
+ * Place a rotation pivot at the wheel's actual geometric center and reparent
+ * the imported GLB node without changing its world transform. The pivot is
+ * intentionally identity-oriented: local X is the axle on every supplied
+ * vehicle model. The source node's original quaternion stays untouched.
+ */
+function createFallbackVehicleWheels(root, layout) {
   const originalYaw = root.rotation.y;
   root.rotation.y = 0;
   root.updateWorldMatrix(true, true);
-  const localBounds = new THREE.Box3().setFromObject(root);
-  root.rotation.y = originalYaw;
-  root.updateWorldMatrix(true, true);
+  const bounds = new THREE.Box3().setFromObject(root);
+  const worldSize = bounds.getSize(new THREE.Vector3());
+  const worldCenter = bounds.getCenter(new THREE.Vector3());
 
-  if (localBounds.isEmpty()) return [];
-  const worldSize = localBounds.getSize(new THREE.Vector3());
-  const worldCenter = localBounds.getCenter(new THREE.Vector3());
   const scaleX = Math.max(1e-6, Math.abs(root.scale.x));
   const scaleY = Math.max(1e-6, Math.abs(root.scale.y));
   const scaleZ = Math.max(1e-6, Math.abs(root.scale.z));
 
-  // Box3 measurements are world-sized. Wheel meshes are children of this
-  // normalized GLB root, so convert their dimensions and positions back into
-  // root-local coordinates or normalization scale would be applied twice.
-  const size = new THREE.Vector3(
+  // Convert the world-space model bounds once into the normalized vehicle
+  // root's local coordinates. No wheel inherits the model's normalization twice.
+  const localSize = new THREE.Vector3(
     worldSize.x / scaleX,
     worldSize.y / scaleY,
     worldSize.z / scaleZ
   );
-  const center = new THREE.Vector3(
+  const localCenter = new THREE.Vector3(
     (worldCenter.x - root.position.x) / scaleX,
     (worldCenter.y - root.position.y) / scaleY,
     (worldCenter.z - root.position.z) / scaleZ
   );
-  const radius = Math.max(0.12, height * 0.16) / ((scaleX + scaleY + scaleZ) / 3);
-  const tireWidth = radius * 0.48;
+  const localGround = (bounds.min.y - root.position.y) / scaleY;
+  root.rotation.y = originalYaw;
+  root.updateWorldMatrix(true, true);
+
+  const radius = layout.radius;
+  const tyreWidth = layout.width;
+  const radiusLocal = radius / scaleY;
+  const widthLocal = tyreWidth / scaleX;
   const rubber = makeMaterial(0x171916, 0.98);
   const hub = makeMaterial(0x74796f, 0.52, 0.3);
   const wheels = [];
 
   for (const side of [-1, 1]) {
-    for (const end of [-1, 1]) {
+    for (const axlePosition of [-1, 1]) {
       const pivot = new THREE.Group();
-      pivot.name = `generated-wheel-${side}-${end}`;
+      pivot.name = `generated-wheel-pivot-${side}-${axlePosition}`;
       pivot.position.set(
-        center.x + side * size.x * 0.47,
-        (localBounds.min.y - root.position.y) / scaleY + radius,
-        center.z + end * size.z * 0.29
+        localCenter.x + side * localSize.x * layout.lateralRatio,
+        localGround + radiusLocal,
+        localCenter.z + axlePosition * localSize.z * layout.longitudinalRatio
       );
-      // CylinderGeometry is Y-axled. Rotate the pivot so its local Y axis
-      // becomes the vehicle's X axle, then spin around that local Y axis.
-      pivot.rotation.z = Math.PI / 2;
-      const tyre = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, tireWidth, 14), rubber);
+      root.add(pivot);
+
+      // Keep the pivot aligned with the vehicle's local X axle. Only the
+      // cylinder meshes are turned sideways; the spin pivot remains identity.
+      const tyre = new THREE.Mesh(
+        new THREE.CylinderGeometry(radiusLocal, radiusLocal, widthLocal, 20),
+        rubber
+      );
+      tyre.rotation.z = Math.PI / 2;
       tyre.castShadow = true;
       tyre.receiveShadow = true;
       pivot.add(tyre);
 
       for (const face of [-1, 1]) {
         const cap = new THREE.Mesh(
-          new THREE.CylinderGeometry(radius * 0.42, radius * 0.42, tireWidth * 0.08, 12),
+          new THREE.CylinderGeometry(radiusLocal * 0.43, radiusLocal * 0.43, widthLocal * 0.1, 16),
           hub
         );
-        cap.position.y = face * tireWidth * 0.49;
+        cap.rotation.z = Math.PI / 2;
+        cap.position.x = face * widthLocal * 0.47;
         cap.castShadow = true;
         pivot.add(cap);
       }
-      root.add(pivot);
-      wheels.push({ object: pivot, radius, axis: 'y' });
+      wheels.push({ pivot, radius, axle: 'x' });
     }
   }
   return wheels;
 }
 
-function collectVehicleWheels(root, routeAxis, asset, height) {
-  const wheels = [];
+function collectVehicleWheels(root, routeAxis, asset, wheelLayout) {
+  const wheelNodes = [];
+  root.updateWorldMatrix(true, true);
   root.traverse((object) => {
-    if (!object.name || !/wheel|tyre|tire/i.test(object.name)) return;
-    object.updateWorldMatrix(true, true);
-    const bounds = new THREE.Box3().setFromObject(object);
-    if (bounds.isEmpty()) return;
+    if (object.isMesh && object.name && /wheel|tyre|tire/i.test(object.name)) {
+      wheelNodes.push(object);
+    }
+  });
+
+  const wheels = wheelNodes.map((wheelNode) => {
+    const bounds = new THREE.Box3().setFromObject(wheelNode);
+    if (bounds.isEmpty()) return null;
     const size = bounds.getSize(new THREE.Vector3());
+
+    // The axle is local X. Pick the two radial dimensions after the vehicle's
+    // route orientation has been applied, not the dimension along the axle.
     const diameter = routeAxis === 'x'
       ? Math.max(size.x, size.y)
       : Math.max(size.y, size.z);
     const radius = diameter * 0.5;
-    if (Number.isFinite(radius) && radius > 0.06) {
-      wheels.push({ object, radius, axis: 'x' });
-    }
-  });
+    if (!Number.isFinite(radius) || radius <= 0.06) return null;
+    return attachWheelPivot(root, wheelNode, radius);
+  }).filter(Boolean);
 
-  // These two supplied GLBs merge the whole vehicle into one mesh and expose
-  // no independent wheel nodes. Add editable, physically-sized wheel pivots.
-  if (wheels.length === 0 && ['Van', 'Bus'].includes(asset)) {
-    return createFallbackVehicleWheels(root, height);
+  // Van and Bus have no named wheel nodes, but their indexed GLB geometry
+  // contains four disconnected tyre/rim groups. Extract their original parts
+  // before using the authored fallback wheel layout.
+  if (wheels.length === 0 && wheelLayout) {
+    const bodyMeshes = [];
+    root.traverse((object) => {
+      if (object.isMesh) bodyMeshes.push(object);
+    });
+    if (bodyMeshes.length === 1) {
+      const extracted = extractMergedWheelComponents(root, bodyMeshes[0]);
+      if (extracted.length === 4) return extracted;
+    }
+    return createFallbackVehicleWheels(root, wheelLayout);
   }
   return wheels;
 }
+
 
 async function addVehicles() {
   for (const definition of WORLD_CONFIG.vehicles) {
@@ -533,7 +564,7 @@ async function addVehicles() {
     const { root } = await createAsset(asset, {
       height, position, rotationY, parent: world, name: id
     });
-    const wheels = collectVehicleWheels(root, route.axis, asset, height);
+    const wheels = collectVehicleWheels(root, route.axis, asset, definition.wheelLayout);
     const vehicleBounds = new THREE.Box3().setFromObject(root);
     const vehicleSize = vehicleBounds.getSize(new THREE.Vector3());
     const vehicleCenter = vehicleBounds.getCenter(new THREE.Vector3());
@@ -816,8 +847,9 @@ function animateActors(delta) {
     if (travelled > 0) {
       for (const wheel of vehicle.wheels) {
         const angle = wheelAngularDelta(travelled, wheel.radius);
-        if (wheel.axis === 'y') wheel.object.rotateY(-angle);
-        else wheel.object.rotation.x -= angle;
+        // Every pivot is identity-oriented in vehicle-local space, with its
+        // X axis aligned to the axle. Keep the imported mesh rest transform.
+        spinWheel(wheel, angle);
       }
     }
   }

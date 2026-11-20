@@ -159,6 +159,14 @@ export function validateWorldConfig(config, assetManifest) {
             item.route.min >= item.route.max) {
           add(`Vehicle "${item.id}" has an invalid route.`);
         }
+        if (['Van', 'Bus'].includes(item.asset)) {
+          const layout = item.wheelLayout;
+          if (!layout || !['radius', 'width', 'lateralRatio', 'longitudinalRatio'].every((key) =>
+            Number.isFinite(layout[key]) && layout[key] > 0
+          ) || layout.lateralRatio >= 0.5 || layout.longitudinalRatio >= 0.5) {
+            add(`Vehicle "${item.id}" needs a valid asset-specific fallback wheel layout.`);
+          }
+        }
       }
       if (collectionName === 'pedestrians') {
         if (!item.interaction || typeof item.interaction.name !== 'string' ||
