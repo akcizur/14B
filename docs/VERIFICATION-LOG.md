@@ -16,7 +16,7 @@ PR #4 sloučil referenční svět do main commitem 02cb1b9eefb188fdacba4b9794de9
 
 PR #5 doplňuje stavební příručku, index dokumentace a plán růstu. Součástí je přesun spawnu z vozovky na kladný chodník: Z = 6,15 m. Regresní test kontroluje, že spawn leží uvnitř chodníku a mimo šířku vozovky.
 
-Vlastní CI pro PR #5 se musí vyhodnotit podle nejnovějšího workflow runu na jeho HEAD SHA. Výsledek staršího PR #4 se nesmí vydávat za výsledek PR #5.
+CI pro PR #5 proběhlo na HEAD commitu 32629531330cb54bfec3371475f6103ecab39e4c: **42 testů prošlo, 0 selhalo**, produkční Vite build i upload artefaktu uspěly. Deploy job byl u PR přeskočen podle workflow pravidel. [Workflow run 44839070862](https://github.com/akcizur/14B/actions/runs/44839070862). PR #5 byl sloučen do main commitem f44098c52981970b29153acbe22186cc16e295a4.
 
 ## Lokální ověření
 
