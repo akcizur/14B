@@ -1,11 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  animationTimeScale,
+  canMoveVehicleAlongAxis,
   canOccupy,
   circleIntersectsAabb,
+  findNearestByDistance,
   isInInteractionRange,
   normalizeMovement,
-  resolveAxisMovement
+  resolveAxisMovement,
+  splitAxisRoute,
+  wheelAngularDelta
 } from '../src/collision.js';
 
 const wall = { minX: 1, maxX: 2, minZ: -1, maxZ: 1 };
@@ -67,4 +72,48 @@ test('swept movement stays on the safe side until it can slide around an obstacl
   );
   assert.ok(result.x <= obstacle.minX - 0.3 + 1e-8);
   assert.equal(result.z, 0);
+});
+
+
+test('vehicle wheel rotation is distance and radius based, not a fixed frame speed', () => {
+  assert.equal(wheelAngularDelta(2, 0.25), 8);
+  assert.equal(wheelAngularDelta(0, 0.25), 0);
+  assert.equal(wheelAngularDelta(2, 0), 0);
+});
+
+test('NPC walk animation time scale follows actual movement speed', () => {
+  assert.equal(animationTimeScale(0.6, 1.2), 0.5);
+  assert.equal(animationTimeScale(1.2, 1.2), 1);
+  assert.equal(animationTimeScale(0, 1.2), 0);
+});
+
+test('proximity target selection does not require looking directly at the target', () => {
+  const player = { x: 0, z: 0 };
+  const nearby = [{ position: { x: 1.5, z: 0 }, name: 'near' }, { position: { x: 0, z: -4 }, name: 'far' }];
+  const selected = findNearestByDistance(player, nearby, 2.2);
+  assert.equal(selected.target.name, 'near');
+  assert.ok(selected.distance < 2.2);
+  assert.equal(findNearestByDistance(player, nearby, 0.5), null);
+});
+
+test('vehicle route wraps at the edge without treating teleportation as road travel', () => {
+  const segments = splitAxisRoute(43.9, 0.4, { min: -44, max: 44 });
+  assert.equal(segments.length, 2);
+  assert.equal(segments[0].from, 43.9);
+  assert.equal(segments[0].to, 44);
+  assert.equal(segments[0].wrapTo, -44);
+  assert.equal(segments[1].from, -44);
+  assert.ok(Math.abs(segments[1].to - (-43.7)) < 1e-8);
+});
+
+test('vehicle body sweep stops before crossing the player between frames', () => {
+  const player = { x: 0, z: 0 };
+  assert.equal(canMoveVehicleAlongAxis(player, 0.3, 'x', 0, -3, 3, 1.2, 0.7, 0.1), false);
+  assert.equal(canMoveVehicleAlongAxis(player, 0.3, 'x', 3, -3, 3, 1.2, 0.7, 0.1), true);
+});
+
+test('vehicle that starts overlapping can only move away from the player', () => {
+  const player = { x: 0, z: 0 };
+  assert.equal(canMoveVehicleAlongAxis(player, 0.3, 'x', 0, -0.5, -2, 1.2, 0.7), true);
+  assert.equal(canMoveVehicleAlongAxis(player, 0.3, 'x', 0, -0.5, 2, 1.2, 0.7), false);
 });
