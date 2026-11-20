@@ -66,24 +66,29 @@ export function resolveAxisMovement(from, to, canMove, maxStep = 0.2) {
   const dz = to.z - from.z;
   const distance = Math.max(Math.abs(dx), Math.abs(dz));
   const steps = Math.max(1, Math.ceil(distance / maxStep));
+  const stepX = dx / steps;
+  const stepZ = dz / steps;
   let x = from.x;
   let z = from.z;
 
-  for (let i = 1; i <= steps; i += 1) {
-    const targetX = from.x + dx * (i / steps);
-    const targetZ = from.z + dz * (i / steps);
+  for (let i = 0; i < steps; i += 1) {
+    const nextX = x + stepX;
+    const nextZ = z + stepZ;
 
-    if (canMove(targetX, targetZ)) {
-      x = targetX;
-      z = targetZ;
+    if (canMove(nextX, nextZ)) {
+      x = nextX;
+      z = nextZ;
       continue;
     }
 
-    const xFirst = Math.abs(dx) >= Math.abs(dz);
+    // Resolve only this sub-step from the last known safe position.
+    // Never resume the original absolute trajectory after a blocked sample:
+    // doing so can tunnel through a thin collider on the far side.
+    const xFirst = Math.abs(stepX) >= Math.abs(stepZ);
     const axes = xFirst ? ['x', 'z'] : ['z', 'x'];
     for (const axis of axes) {
-      if (axis === 'x' && canMove(targetX, z)) x = targetX;
-      if (axis === 'z' && canMove(x, targetZ)) z = targetZ;
+      if (axis === 'x' && canMove(x + stepX, z)) x += stepX;
+      if (axis === 'z' && canMove(x, z + stepZ)) z += stepZ;
     }
   }
 
