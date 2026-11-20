@@ -8,7 +8,7 @@ District 14 is a Three.js + Vite first-person neighbourhood sandbox. The world i
 - One reference house on one parcel.
 - Three structural storeys generated from the measured dimensions of the house's local GLB shell.
 - Interior floor slabs, wall thickness, a U-shaped stair core, corridor, room divisions, door openings, window apertures, frames and glazing.
-- A real exterior-to-sidewalk access path derived from the house's doorway transform.
+- A generated entrance landing and access path connected to the nearest sidewalk from the computed facade entrance anchor.
 - No furniture, appliances, loose decoration, traffic, pedestrians, perimeter clutter or extra buildings in this stage.
 
 The model catalogue remains in `public/models/` for later expansion. Only assets referenced by the current world definition are loaded at runtime.
@@ -71,7 +71,7 @@ Future houses are added as new parcels along the existing street. Only after the
 - `public/models/`: local GLB asset library and manifest.
 - `tests/`: world, hierarchy, building geometry, stairs, GLB and collision regression tests.
 
-See [World Architecture](docs/WORLD-ARCHITECTURE.md) and [Settlement Growth](docs/SETTLEMENT-GROWTH.md) for the current design constraints.
+Start at the [documentation index](docs/README.md). The dimensional and construction specification is [Reference House & Street](docs/REFERENCE-HOUSE-AND-STREET.md); the system boundaries are in [World Architecture](docs/WORLD-ARCHITECTURE.md), and the staged expansion path is in [Settlement Growth](docs/SETTLEMENT-GROWTH.md).
 
 ## Scope
 
