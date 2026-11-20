@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { attachWheelPivot, spinWheel } from '../src/vehicles/wheel-rig.js';
 
 function boxCenter(object) {
@@ -105,7 +108,9 @@ function mergeIndexedGeometry(parts) {
 
 test('merged vehicle geometry yields four original wheel rigs without duplicate overlay tyres', async () => {
   const { extractMergedWheelComponents } = await import('../src/vehicles/wheel-rig.js');
-  const parts = [new THREE.BoxGeometry(4, 2, 6)];
+  const bodyGeometry = new THREE.BoxGeometry(4, 2, 6);
+  bodyGeometry.translate(0, 1, 0);
+  const parts = [bodyGeometry];
   for (const x of [-1.2, 1.2]) {
     for (const z of [-1.8, 1.8]) {
       const tyre = new THREE.CylinderGeometry(0.4, 0.4, 0.2, 16);
@@ -142,4 +147,84 @@ test('merged vehicle geometry yields four original wheel rigs without duplicate 
   wheels.forEach((wheel, index) => {
     assertVectorClose(wheel.pivot.getWorldPosition(new THREE.Vector3()), centers[index]);
   });
+});
+
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const assetManifest = JSON.parse(fs.readFileSync(
+  path.join(repositoryRoot, 'public', 'models', 'manifest.json'),
+  'utf8'
+));
+
+function loadIndexedGlbGeometry(assetKey) {
+  const file = fs.readFileSync(path.join(repositoryRoot, 'public', 'models', assetManifest[assetKey]));
+  assert.equal(file.toString('ascii', 0, 4), 'glTF');
+  const jsonLength = file.readUInt32LE(12);
+  const json = JSON.parse(file.toString('utf8', 20, 20 + jsonLength).trim());
+  const binaryStart = 20 + jsonLength + 8;
+  const positionAccessor = json.accessors[json.meshes[0].primitives[0].attributes.POSITION];
+  const indexAccessor = json.accessors[json.meshes[0].primitives[0].indices];
+  const positionView = json.bufferViews[positionAccessor.bufferView];
+  const indexView = json.bufferViews[indexAccessor.bufferView];
+  const positionOffset = (positionView.byteOffset || 0) + (positionAccessor.byteOffset || 0);
+  const indexOffset = (indexView.byteOffset || 0) + (indexAccessor.byteOffset || 0);
+  const positionStride = positionView.byteStride || 12;
+  const positionData = new Float32Array(positionAccessor.count * 3);
+
+  for (let i = 0; i < positionAccessor.count; i += 1) {
+    const offset = binaryStart + positionOffset + i * positionStride;
+    positionData[i * 3] = file.readFloatLE(offset);
+    positionData[i * 3 + 1] = file.readFloatLE(offset + 4);
+    positionData[i * 3 + 2] = file.readFloatLE(offset + 8);
+  }
+
+  const indexBytes = indexAccessor.componentType === 5123 ? 2 : 4;
+  const indices = new Uint32Array(indexAccessor.count);
+  for (let i = 0; i < indexAccessor.count; i += 1) {
+    const offset = binaryStart + indexOffset + i * indexBytes;
+    indices[i] = indexBytes === 2 ? file.readUInt16LE(offset) : file.readUInt32LE(offset);
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positionData, 3));
+  geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+  geometry.computeBoundingBox();
+  geometry.computeBoundingSphere();
+  return geometry;
+}
+
+test('real Van and Bus GLBs expose four original wheel groups at measured positions and radii', () => {
+  const cases = [
+    { asset: 'Van', height: 1.55, expectedRadius: 0.344 },
+    { asset: 'Bus', height: 3.05, expectedRadius: 0.436 }
+  ];
+
+  for (const spec of cases) {
+    const geometry = loadIndexedGlbGeometry(spec.asset);
+    const originalTriangleCount = geometry.index.count / 3;
+    const root = new THREE.Group();
+    root.position.set(3, 0, -4);
+    root.rotation.y = Math.PI / 2;
+    root.scale.setScalar(spec.height / geometry.boundingBox.getSize(new THREE.Vector3()).y);
+    const body = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
+    root.add(body);
+    root.updateWorldMatrix(true, true);
+
+    const wheels = extractMergedWheelComponents(root, body);
+    assert.equal(wheels.length, 4, spec.asset);
+    assert.ok(body.geometry.index.count / 3 < originalTriangleCount, spec.asset);
+
+    const centers = wheels.map((wheel) => wheel.pivot.getWorldPosition(new THREE.Vector3()));
+    for (const wheel of wheels) {
+      assert.ok(Math.abs(wheel.radius - spec.expectedRadius) < 0.015,
+        `${spec.asset} radius ${wheel.radius}`);
+      assert.ok(wheel.pivot.getWorldPosition(new THREE.Vector3()).y > 0.2);
+      assert.equal(spinWheel(wheel, Math.PI * 0.5), true);
+    }
+
+    root.updateWorldMatrix(true, true);
+    wheels.forEach((wheel, index) => {
+      assertVectorClose(wheel.pivot.getWorldPosition(new THREE.Vector3()), centers[index]);
+    });
+  }
 });
