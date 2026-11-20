@@ -94,7 +94,7 @@ export function deriveInteriorPlan(bounds, architecture = {}) {
   const corridorWallX = Math.min(stairMaxX + corridorWidth, inner.maxX - 1.2);
   const entryX = clamp(corridorWallX - corridorWidth / 2,
     inner.minX + 0.85, inner.maxX - 0.85);
-  const windowWidth = clamp(width * 0.19, 0.9, 1.55);
+  const windowWidth = clamp(width * 0.16, 0.9, 1.35);
   const windowHeight = clamp(floorHeight * 0.39, 1.05, 1.3);
   const windowSill = clamp(floorHeight * 0.29, 0.82, 1.0);
 
@@ -159,7 +159,7 @@ export function getInteriorWalkHeight(plan, x, z, currentFeetY = plan.baseY) {
     return plan.baseY + level * plan.floorHeight + t * plan.floorHeight * 0.5;
   }
   if (inLaneTwo && plan.storeys > 1) {
-    const level = clamp(Math.ceil((currentFeetY - plan.baseY - EPSILON) / plan.floorHeight) - 1, 0, plan.storeys - 2);
+    const level = clamp(Math.floor((currentFeetY - plan.baseY + EPSILON) / plan.floorHeight), 0, plan.storeys - 2);
     const t = clamp((z - stair.minZ) / (stair.maxZ - stair.minZ), 0, 1);
     return plan.baseY + level * plan.floorHeight + plan.floorHeight * (1 - t * 0.5);
   }
@@ -449,9 +449,9 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
 
     const frontOpenings = level === 0
       ? [
-          { kind: 'window', center: inner.minX + plan.innerWidth * 0.23, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
+          { kind: 'window', center: inner.minX + plan.innerWidth * 0.15, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
           { kind: 'door', center: plan.entryX, width: plan.doorWidth, sill: 0, height: plan.doorHeight },
-          { kind: 'window', center: inner.minX + plan.innerWidth * 0.79, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight }
+          { kind: 'window', center: inner.minX + plan.innerWidth * 0.84, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight }
         ]
       : [
           { kind: 'window', center: inner.minX + plan.innerWidth * 0.25, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
