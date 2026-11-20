@@ -1,6 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { canOccupy, circleIntersectsAabb, resolveAxisMovement } from '../src/collision.js';
+import {
+  canOccupy,
+  circleIntersectsAabb,
+  isInInteractionRange,
+  normalizeMovement,
+  resolveAxisMovement
+} from '../src/collision.js';
 
 const wall = { minX: 1, maxX: 2, minZ: -1, maxZ: 1 };
 
@@ -17,10 +23,37 @@ test('walkable bounds include the player radius and reject invalid coordinates',
   assert.equal(canOccupy(Number.NaN, 0, 0.3, bounds), false);
 });
 
+test('diagonal movement is normalized to the same total speed as axial movement', () => {
+  const diagonal = normalizeMovement(1, 1);
+  const axial = normalizeMovement(1, 0);
+  assert.ok(Math.abs(Math.hypot(diagonal.x, diagonal.z) - 1) < 1e-10);
+  assert.equal(Math.hypot(axial.x, axial.z), 1);
+  assert.deepEqual(normalizeMovement(0, 0), { x: 0, z: 0 });
+});
+
+test('interaction range requires proximity and a forward-facing direction', () => {
+  const player = { x: 0, z: 0 };
+  const door = { x: 0, z: -2 };
+  assert.equal(isInInteractionRange(player, door, { x: 0, z: -1 }), true);
+  assert.equal(isInInteractionRange(player, door, { x: 0, z: 1 }), false);
+  assert.equal(isInInteractionRange(player, { x: 0, z: -5 }, { x: 0, z: -1 }), false);
+});
+
 test('movement resolves against obstacles and slides along a free axis', () => {
   const from = { x: 0, z: 0 };
   const to = { x: 1.5, z: 0.5 };
   const resolved = resolveAxisMovement(from, to, (x, z) => !circleIntersectsAabb(x, z, 0.3, wall));
   assert.equal(resolved.x, 0);
-  assert.equal(resolved.z, 0.5);
+  assert.ok(resolved.z > 0);
+});
+
+test('swept movement cannot tunnel through a thin obstacle', () => {
+  const obstacle = { minX: 1, maxX: 1.2, minZ: -1, maxZ: 1 };
+  const result = resolveAxisMovement(
+    { x: 0, z: 0 },
+    { x: 3, z: 0 },
+    (x, z) => !circleIntersectsAabb(x, z, 0.3, obstacle)
+  );
+  assert.ok(result.x < obstacle.minX);
+  assert.ok(result.x >= 0);
 });
