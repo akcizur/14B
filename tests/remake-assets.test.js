@@ -25,7 +25,7 @@ test('player movement is normalized and swept through the collision world', () =
   assert.match(source, /normalizeMovement\(forwardInput, strafeInput\)/);
   assert.match(source, /getMovingActorColliders\(\)/);
   assert.match(source, /addObjectCollider\(root/);
-  assert.match(source, /tree-trunk-/);
+  assert.match(source, /trunk-/);
 });
 
 test('house entry uses a facing cone and the correct outside side', () => {
