@@ -28,8 +28,11 @@ test('player movement is normalized and swept through the collision world', () =
   assert.match(source, /trunk-/);
 });
 
-test('house entry uses a facing cone and the correct outside side', () => {
+test('house and pedestrian interactions are selected by proximity, not reticle aim', () => {
   const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
-  assert.match(source, /isInInteractionRange\(camera\.position, target, forward, 3\.2, 0\.28\)/);
-  assert.match(source, /outsideDepth < 0\.2/);
+  assert.match(source, /findNearestByDistance\(camera\.position, available, 3\.2/);
+  assert.match(source, /function nearestPedestrian\(\)/);
+  assert.match(source, /walker\.interaction\.radius/);
+  assert.match(source, /function openNpcDialog\(walker\)/);
+  assert.doesNotMatch(source, /isInInteractionRange\(camera\.position, target, forward/);
 });
