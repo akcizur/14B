@@ -35,10 +35,7 @@ test('all world entities have stable unique IDs and explicit collision policies'
 
 test('world data validates model keys, transforms and map bounds', () => {
   const invalid = structuredClone(WORLD_CONFIG);
-  invalid.streetProps[0].id = invalid.buildings[0].id;
-  invalid.streetProps[0].asset = 'Missing Model';
-  invalid.streetProps[0].position = [500, 0, 500];
-  invalid.streetProps[0].collision = { type: 'bounds', scale: -1, minSize: 0 };
+  invalid.streetProps.push({ id: invalid.buildings[0].id, asset: 'Missing Model', position: [500, 0, 500], height: 1, collision: { type: 'bounds', scale: -1, minSize: 0 } });
   const errors = validateWorldConfig(invalid, manifest);
   assert.ok(errors.some((message) => message.includes('Duplicate world entity id')));
   assert.ok(errors.some((message) => message.includes('references missing asset')));
@@ -69,11 +66,11 @@ test('pedestrians define local talk interactions and gait reference speeds', () 
 
 test('enterable buildings define multi-storey structural architecture', () => {
   const houses = WORLD_CONFIG.buildings.filter((building) => building.role === 'house');
-  assert.equal(houses.length, 2);
+  assert.equal(houses.length, 1);
   assert.ok(houses.every((house) => Number.isInteger(house.architecture?.storeys)));
   assert.ok(houses.every((house) => house.architecture.storeys >= 2));
   assert.ok(WORLD_CONFIG.street.entryPath.width > 0);
-  assert.ok(WORLD_CONFIG.fences.z > 15, 'garden fence must not block the house entry approach');
+  assert.equal(WORLD_CONFIG.fences, undefined, 'starter parcel must remain free of perimeter clutter');
 });
 
 
@@ -86,6 +83,7 @@ test('starter world contains only one reference house and the road corridor', ()
   assert.deepEqual(WORLD_CONFIG.pedestrians, []);
   assert.ok(WORLD_CONFIG.street.road.size[0] > WORLD_CONFIG.street.road.size[1]);
   assert.ok(WORLD_CONFIG.street.sidewalk.width > 0);
+  assert.equal(WORLD_CONFIG.street.manhole, undefined);
 });
 
 test('settlement hierarchy is unique and grows from district to rooms', () => {
