@@ -71,11 +71,33 @@ export function validateWorldConfig(config, assetManifest) {
       if (item.rotationY !== undefined && !Number.isFinite(item.rotationY)) {
         add(`World entity "${item.id || '(unnamed)'}" has an invalid rotationY.`);
       }
-      if (item.collision && (
-        !Number.isFinite(item.collision.scale) || item.collision.scale <= 0 ||
-        !Number.isFinite(item.collision.minSize) || item.collision.minSize <= 0
-      )) {
+      if (!Object.prototype.hasOwnProperty.call(item, 'collision')) {
+        add(`World entity "${item.id || '(unnamed)'}" must declare a collision profile or collision: false.`);
+      } else if (item.collision !== false && (!item.collision || typeof item.collision !== 'object')) {
         add(`World entity "${item.id || '(unnamed)'}" has an invalid collision profile.`);
+      } else if (item.collision && collectionName === 'streetProps') {
+        if (item.collision.type !== 'bounds' || !Number.isFinite(item.collision.scale) ||
+            item.collision.scale <= 0 || !Number.isFinite(item.collision.minSize) ||
+            item.collision.minSize <= 0) add(`Street prop "${item.id}" has an invalid bounds collision profile.`);
+      } else if (item.collision && collectionName === 'buildings') {
+        const c = item.collision;
+        if (c.type !== 'bounds' || !['scaleX', 'scaleZ', 'minWidth', 'minDepth'].every((key) => Number.isFinite(c[key]) && c[key] > 0)) {
+          add(`Building "${item.id}" has an invalid bounds collision profile.`);
+        }
+      } else if (item.collision && collectionName === 'trees') {
+        if (item.collision.type !== 'cylinder' || !Number.isFinite(item.collision.radius) || item.collision.radius <= 0) {
+          add(`Tree "${item.id}" has an invalid trunk collision profile.`);
+        }
+      } else if (item.collision && collectionName === 'vehicles') {
+        const c = item.collision;
+        if (c.type !== 'bounds' || !['scaleX', 'scaleZ', 'minHalfWidth', 'minHalfDepth'].every((key) => Number.isFinite(c[key]) && c[key] > 0)) {
+          add(`Vehicle "${item.id}" has an invalid collision profile.`);
+        }
+      } else if (item.collision && collectionName === 'pedestrians') {
+        const c = item.collision;
+        if (c.type !== 'bounds' || !['halfWidth', 'halfDepth'].every((key) => Number.isFinite(c[key]) && c[key] > 0)) {
+          add(`Pedestrian "${item.id}" has an invalid collision profile.`);
+        }
       }
       if (collectionName === 'buildings' && !['house', 'backdrop'].includes(item.role)) {
         add(`Building "${item.id || '(unnamed)'}" must declare role "house" or "backdrop".`);
