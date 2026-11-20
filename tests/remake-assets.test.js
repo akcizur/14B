@@ -38,10 +38,20 @@ test('house and pedestrian interactions are selected by proximity, not reticle a
 });
 
 
-test('fallback vehicle wheels are positioned in normalized root-local space', () => {
+test('imported wheel nodes are reparented to centered pivots without changing their rest pose', () => {
   const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
-  assert.match(source, /worldSize\.x \/ scaleX/);
-  assert.match(source, /worldCenter\.x - root\.position\.x/);
-  assert.match(source, /localBounds\.min\.y - root\.position\.y\) \/ scaleY/);
-  assert.match(source, /createFallbackVehicleWheels\(root, height\)/);
+  assert.match(source, /const centerWorld = wheelBounds\.getCenter/);
+  assert.match(source, /const centerLocal = root\.worldToLocal\(centerWorld\.clone\(\)\)/);
+  assert.match(source, /pivot\.attach\(wheelNode\)/);
+  assert.match(source, /wheel\.pivot\.rotateX\(angle\)/);
+  assert.doesNotMatch(source, /wheel\.object\.rotation\.x/);
+});
+
+test('merged Van and Bus assets use explicit model-specific wheel layouts', () => {
+  const config = fs.readFileSync(path.join(root, 'src', 'world', 'world-config.js'), 'utf8');
+  const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+  assert.match(config, /asset: 'Van'.*wheelLayout: \{ radius: 0\.29/);
+  assert.match(config, /asset: 'Bus'.*wheelLayout: \{ radius: 0\.44/);
+  assert.match(source, /createFallbackVehicleWheels\(root, wheelLayout\)/);
+  assert.match(source, /tyre\.rotation\.z = Math\.PI \/ 2/);
 });
