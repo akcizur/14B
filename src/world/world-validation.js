@@ -35,6 +35,51 @@ export function validateWorldConfig(config, assetManifest) {
 
   if (!assetManifest || typeof assetManifest !== 'object') add('Asset manifest must be an object.');
 
+  const positive = (value) => Number.isFinite(value) && value > 0;
+  const checkSize2 = (value, label) => {
+    if (!Array.isArray(value) || value.length !== 2 || !value.every(positive)) {
+      add(`${label} must contain two positive finite dimensions.`);
+    }
+  };
+  if (!config.environment || !Number.isFinite(config.environment.background) ||
+      !Number.isFinite(config.environment.fogColor) || !positive(config.environment.fogDensity)) {
+    add('World environment settings are invalid.');
+  }
+  if (!config.street || typeof config.street !== 'object') {
+    add('World street geometry is missing.');
+  } else {
+    for (const key of ['ground', 'road']) {
+      const definition = config.street[key];
+      if (!definition || !checkVector3(definition.position, `Street ${key} position`)) continue;
+      checkSize2(definition.size, `Street ${key} size`);
+    }
+    for (const key of ['sidewalk', 'curb', 'gardens']) {
+      const definition = config.street[key];
+      if (!definition || !Object.values(definition).every(Number.isFinite)) add(`Street ${key} dimensions are invalid.`);
+    }
+    const lanes = config.street.laneMarkings;
+    if (!lanes || !['startX', 'endX', 'step', 'width', 'depth', 'y'].every((key) => Number.isFinite(lanes[key])) ||
+        lanes.startX > lanes.endX || !positive(lanes.step) || !positive(lanes.width) || !positive(lanes.depth)) {
+      add('Street lane marking configuration is invalid.');
+    }
+    const crossing = config.street.crosswalks;
+    if (!crossing || !Array.isArray(crossing.centersX) || !crossing.centersX.every(Number.isFinite) ||
+        !['firstOffset', 'lastOffset', 'spacing', 'width', 'depth', 'y'].every((key) => Number.isFinite(crossing[key])) ||
+        crossing.firstOffset > crossing.lastOffset || !positive(crossing.spacing) ||
+        !positive(crossing.width) || !positive(crossing.depth)) {
+      add('Street crosswalk configuration is invalid.');
+    }
+    if (!config.street.manhole || !checkVector3(config.street.manhole.position, 'Manhole position') ||
+        !positive(config.street.manhole.radius)) add('Manhole configuration is invalid.');
+  }
+  if (!config.streetLights || !Array.isArray(config.streetLights.sides) ||
+      !config.streetLights.sides.every((side) => [-1, 1].includes(side)) ||
+      !Array.isArray(config.streetLights.positionsX) || !config.streetLights.positionsX.every(Number.isFinite) ||
+      !positive(config.streetLights.z) || !positive(config.streetLights.poleHeight) ||
+      !config.streetLights.collision || !positive(config.streetLights.collision.radius)) {
+    add('Street light configuration or collision profile is invalid.');
+  }
+
   const ids = new Set();
   const collections = ['buildings', 'streetProps', 'trees', 'vehicles', 'pedestrians'];
   for (const collectionName of collections) {
