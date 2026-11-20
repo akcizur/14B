@@ -50,11 +50,10 @@ test('imported wheel nodes use the shared centered pivot rig and preserve the GL
   assert.doesNotMatch(source, /wheel\.object\.rotation\.x/);
 });
 
-test('merged Van and Bus assets use explicit model-specific wheel layouts', () => {
+test('starter scene keeps the road and reference house free of traffic assets', () => {
   const config = fs.readFileSync(path.join(root, 'src', 'world', 'world-config.js'), 'utf8');
-  const source = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
-  assert.match(config, /asset: 'Van'.*wheelLayout: \{ radius: 0\.29/);
-  assert.match(config, /asset: 'Bus'.*wheelLayout: \{ radius: 0\.44/);
-  assert.match(source, /createFallbackVehicleWheels\(root, wheelLayout\)/);
-  assert.match(source, /tyre\.rotation\.z = Math\.PI \/ 2/);
+  assert.match(config, /vehicles: \[\]/);
+  assert.match(config, /streetProps: \[\]/);
+  assert.match(config, /pedestrians: \[\]/);
+  assert.doesNotMatch(config, /asset: 'Van'|asset: 'Bus'|traffic-car/);
 });
