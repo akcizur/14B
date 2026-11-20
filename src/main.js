@@ -5,6 +5,7 @@ import { PointerLockControls } from 'three/addons/controls/PointerLockControls.j
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { canOccupy, canMoveVehicleAlongAxis, circleIntersectsAabb, findNearestByDistance, animationTimeScale, normalizeMovement, splitAxisRoute, wheelAngularDelta, resolveAxisMovement } from './collision.js';
 import { attachWheelPivot, extractMergedWheelComponents, spinWheel } from './vehicles/wheel-rig.js';
+import { buildBuildingInterior } from './world/building-architecture.js';
 import { WORLD_CONFIG } from './world/world-config.js';
 import { assertValidWorldConfig } from './world/world-validation.js';
 
@@ -39,11 +40,6 @@ const interactableDoors = [];
 const houses = [];
 const keyState = new Set();
 const playerRadius = 0.3;
-const interiorFurnitureBlockers = new Set([
-  'Couch Large', 'Fireplace', 'Kitchen Fridge', 'Kitchen Sink', 'Oven',
-  'Table Round Large', 'Chair', 'Shelf Large', 'Bed King', 'Night Stand',
-  'Bathroom Sink', 'Toilet', 'Bathtub', 'Washing Machine', 'Stool'
-]);
 let manifest = {};
 let currentInterior = null;
 let gameStarted = false;
@@ -232,6 +228,47 @@ function addStreetBase() {
   world.add(manhole);
 }
 
+function addEntryWalkway(house) {
+  const config = WORLD_CONFIG.street.entryPath;
+  const sidewalk = WORLD_CONFIG.street.sidewalk;
+  const normal = house.doorNormal.clone();
+  if (Math.abs(normal.z) < 0.75) return;
+
+  const side = Math.sign(normal.z) || 1;
+  const sidewalkEdge = side * (sidewalk.z + sidewalk.depth / 2 - 0.06);
+  const distance = (sidewalkEdge - house.doorPosition.z) / normal.z;
+  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15) return;
+
+  const yaw = Math.atan2(normal.x, normal.z);
+  const pathStart = house.doorPosition.clone().addScaledVector(normal, config.thresholdDepth / 2);
+  const pathEnd = house.doorPosition.clone().addScaledVector(normal, distance);
+  const pathLength = pathStart.distanceTo(pathEnd);
+  const material = makeMaterial(0x99998f, 0.94);
+  const landing = new THREE.Mesh(
+    new THREE.BoxGeometry(config.width + 0.45, config.thickness, config.thresholdDepth),
+    material
+  );
+  landing.name = `${house.id}-entry-landing`;
+  landing.position.copy(house.doorPosition).addScaledVector(normal, config.thresholdDepth / 2);
+  landing.position.y = config.thickness / 2;
+  landing.rotation.y = yaw;
+  landing.receiveShadow = true;
+  world.add(landing);
+
+  if (pathLength > 0.1) {
+    const path = new THREE.Mesh(
+      new THREE.BoxGeometry(config.width, config.thickness, pathLength),
+      material
+    );
+    path.name = `${house.id}-entry-walkway`;
+    path.position.copy(pathStart).add(pathEnd).multiplyScalar(0.5);
+    path.position.y = config.thickness / 2;
+    path.rotation.y = yaw;
+    path.receiveShadow = true;
+    world.add(path);
+  }
+}
+
 async function addBuilding(definition) {
   const { id, asset, position, rotationY = 0, height, role, frontSide, collision } = definition;
   const { root } = await createAsset(asset, {
@@ -245,133 +282,27 @@ async function addBuilding(definition) {
   const center = box.getCenter(new THREE.Vector3());
 
   if (role === 'house') {
-    const doorZ = (frontSide > 0 ? box.max.z : box.min.z) + frontSide * 0.12;
-    const doorPosition = new THREE.Vector3(position[0], 0, doorZ);
-    const interior = buildInterior({ x: position[0], z: position[2], frontSide, seed: id });
+    const architecture = buildBuildingInterior(root, definition);
+    const interior = architecture.root;
     interior.visible = false;
     scene.add(interior);
     const house = {
       id, name: id, root, interior,
-      center: new THREE.Vector3(position[0], 0, position[2]),
-      doorPosition, frontSide, size
+      center: root.position.clone(),
+      doorPosition: architecture.doorPosition,
+      doorNormal: architecture.outward,
+      frontSide,
+      rotationY: root.rotation.y,
+      size,
+      architecture: architecture.plan
     };
     houses.push(house);
     interactableDoors.push(house);
+    addEntryWalkway(house);
     addCollider(id, center.x, center.z, Math.max(collision.minWidth, size.x * collision.scaleX), Math.max(collision.minDepth, size.z * collision.scaleZ));
   } else {
     addCollider(id, center.x, center.z, Math.max(collision.minWidth, size.x * collision.scaleX), Math.max(collision.minDepth, size.z * collision.scaleZ));
   }
-  return root;
-}
-
-function buildInterior({ x, z, frontSide, seed }) {
-  const root = new THREE.Group();
-  root.name = `${seed}-interior`;
-  root.position.set(x, 0, z);
-  root.rotation.y = frontSide < 0 ? Math.PI : 0;
-  const floor = makeMaterial(0x776a59, 0.92);
-  const wall = makeMaterial(0xd8d0bf, 0.94);
-  const wallAccent = makeMaterial(seed.endsWith('-b') ? 0x9caea5 : 0xc6ad91, 0.92);
-  const dark = makeMaterial(0x3b3d38, 0.75);
-  const windowMat = new THREE.MeshStandardMaterial({ color: 0x839ba0, roughness: 0.28, metalness: 0.1, transparent: true, opacity: 0.62 });
-  addBox(root, 'interior-floor', 0, -0.12, 0, 7.0, 0.16, 4.4, floor);
-  addBox(root, 'interior-ceiling', 0, 3.0, 0, 7.0, 0.14, 4.4, wallAccent, false);
-  addBox(root, 'interior-left-wall', -3.43, 0, 0, 0.14, 3.0, 4.4, wall);
-  addBox(root, 'interior-right-wall', 3.43, 0, 0, 0.14, 3.0, 4.4, wall);
-  addBox(root, 'interior-back-wall', 0, 0, -2.15, 7.0, 3.0, 0.14, wall);
-  addBox(root, 'interior-front-left', -2.55, 0, 2.15, 3.0, 3.0, 0.14, wall);
-  addBox(root, 'interior-front-right', 2.55, 0, 2.15, 3.0, 3.0, 0.14, wall);
-  addBox(root, 'interior-front-lintel', 0, 2.35, 2.15, 1.9, 0.65, 0.14, wall);
-  addBox(root, 'interior-divider', 0.95, 0, -0.15, 0.13, 2.65, 3.9, wallAccent);
-  addBox(root, 'interior-divider-return', 2.2, 0, 1.05, 2.4, 2.65, 0.13, wallAccent);
-  addBox(root, 'interior-window-left', -2.15, 1.66, -2.065, 1.55, 1.05, 0.045, windowMat, false);
-  addBox(root, 'interior-window-right', 2.15, 1.66, -2.065, 1.55, 1.05, 0.045, windowMat, false);
-  addBox(root, 'interior-window-frame-left-top', -2.15, 2.2, -2.03, 1.72, 0.07, 0.08, dark);
-  addBox(root, 'interior-window-frame-left-bottom', -2.15, 1.12, -2.03, 1.72, 0.07, 0.08, dark);
-  addBox(root, 'interior-window-frame-left-center', -2.15, 1.66, -2.03, 0.07, 1.05, 0.08, dark);
-
-  // The original remake clamped the player to the room rectangle only.
-  // These world-space boxes make the room divider and large furnishings solid.
-  root.updateMatrixWorld(true);
-  const collisionBoxes = [];
-  const addLocalCollider = (name, cx, cz, width, depth) => {
-    const center = root.localToWorld(new THREE.Vector3(cx, 0, cz));
-    collisionBoxes.push({
-      name, minX: center.x - width / 2, maxX: center.x + width / 2,
-      minZ: center.z - depth / 2, maxZ: center.z + depth / 2
-    });
-  };
-  addLocalCollider('interior-divider', 0.95, -0.15, 0.13, 3.9);
-  addLocalCollider('interior-divider-return', 2.2, 1.05, 2.4, 0.13);
-
-  const ceilingLight = new THREE.PointLight(0xffe3b8, 1.1, 12, 2);
-  ceilingLight.position.set(-1, 2.7, -0.2);
-  root.add(ceilingLight);
-  const kitchenLight = new THREE.PointLight(0xffe9cf, 0.55, 6, 2);
-  kitchenLight.position.set(3.0, 2.3, -1.1);
-  root.add(kitchenLight);
-
-  const add = async (key, height, px, py, pz, yaw = 0) => {
-    const result = await createAsset(key, { height, position: [px, py, pz], rotationY: yaw, parent: root });
-    if (key === 'Rug') result.root.scale.set(0.82, 1, 0.65);
-    if (interiorFurnitureBlockers.has(key)) {
-      result.root.updateWorldMatrix(true, true);
-      const box = new THREE.Box3().setFromObject(result.root);
-      if (!box.isEmpty()) {
-        const pad = key === 'Chair' || key === 'Stool' ? 0.04 : 0.08;
-        const collider = {
-          name: `furniture-${key}`,
-          minX: box.min.x + pad, maxX: box.max.x - pad,
-          minZ: box.min.z + pad, maxZ: box.max.z - pad
-        };
-        if (collider.minX < collider.maxX && collider.minZ < collider.maxZ) {
-          collisionBoxes.push(collider);
-        }
-      }
-    }
-    return result;
-  };
-  const livingFurniture = [
-    ['Couch Large', 0.95, -1.9, 0, 0.45, Math.PI],
-    ['Rug', null, -1.8, 0.01, 0.05],
-    ['Fireplace', 1.8, -2.75, 0, -1.55],
-    ['Houseplant', 0.86, -3.0, 0, 1.55],
-    ['Table Lamp', 0.62, -0.35, 0.76, -0.5],
-    ['Kitchen Fridge', 2.05, 2.9, 0, -1.55, Math.PI],
-    ['Kitchen Sink', 1.05, 2.15, 0, -0.75],
-    ['Oven', 0.98, 2.9, 0, 0.1],
-    ['Table Round Large', 0.78, 1.65, 0, 1.1],
-    ['Chair', 0.95, 0.55, 0, 1.0, -Math.PI / 2],
-    ['Chair', 0.95, 2.7, 0, 1.0, Math.PI / 2],
-    ['Shelf Large', 1.95, -3.0, 0, -0.1, Math.PI / 2],
-    ['Cactus', 0.58, -0.25, 0, 2.65]
-  ];
-  const bedroomFurniture = [
-    ['Bed King', 0.9, -1.7, 0, -0.7, Math.PI],
-    ['Night Stand', 0.64, -2.8, 0, -1.0],
-    ['Bathroom Sink', 0.85, 2.7, 0, -1.3],
-    ['Toilet', 0.82, 3.0, 0, -0.15, Math.PI],
-    ['Bathtub', 0.72, 1.65, 0, -1.35],
-    ['Washing Machine', 0.95, 2.85, 0, 0.75],
-    ['Shelf Large', 1.95, -3.0, 0, -0.1, Math.PI / 2],
-    ['Houseplant', 0.86, -2.95, 0, 1.45],
-    ['Table Lamp', 0.62, -2.8, 0.76, -1.0],
-    ['Stool', 0.72, 1.8, 0, 0.9],
-    ['Towel Rack', 0.9, 3.05, 1.0, -1.85],
-    ['Toilet Paper stack', 0.35, 3.1, 0, -0.5]
-  ];
-  const buildProps = async () => {
-    const furniture = seed.endsWith('-b') ? bedroomFurniture : livingFurniture;
-    await Promise.all([
-      ...furniture.map(([key, height, px, py, pz, yaw = 0]) => add(key, height, px, py, pz, yaw)),
-      add('Ceiling Light', 0.48, -1, 2.86, -0.2),
-      add('Curtains Double', 1.55, -2.1, 0.68, -2.05),
-      add('Window Large', 1.15, -2.15, 1.62, -2.1),
-      add('Window Small', 0.82, 2.15, 1.62, -2.1)
-    ]);
-  };
-  root.userData.collisionBoxes = collisionBoxes;
-  root.userData.ready = buildProps();
   return root;
 }
 
@@ -612,10 +543,12 @@ function buildBackdrop() {
 }
 
 async function buildInteriorEntranceMarker(house) {
+  const markerPosition = house.doorPosition.clone().addScaledVector(house.doorNormal, -0.035);
+  const markerYaw = Math.atan2(-house.doorNormal.x, -house.doorNormal.z);
   const { root } = await createAsset('Door', {
     height: 2.2,
-    position: [house.doorPosition.x + (house.frontSide < 0 ? -0.456 : 0.456), 0, house.doorPosition.z - house.frontSide * 0.07],
-    rotationY: house.frontSide < 0 ? Math.PI : 0,
+    position: [markerPosition.x, markerPosition.y, markerPosition.z],
+    rotationY: markerYaw,
     parent: world,
     name: `${house.name}-door-marker`
   });
@@ -649,10 +582,12 @@ function getMovingActorColliders() {
 
 function canPlayerOccupy(x, z, previous = null) {
   if (currentInterior) {
-    const local = currentInterior.interior.worldToLocal(new THREE.Vector3(x, camera.position.y, z));
-    const localBounds = { minX: -3.1, maxX: 3.1, minZ: -1.8, maxZ: 1.8 };
-    if (!canOccupy(local.x, local.z, playerRadius, localBounds)) return false;
-    return canOccupy(x, z, playerRadius, null, currentInterior.interior.userData.collisionBoxes || []);
+    const interior = currentInterior.interior;
+    const local = interior.worldToLocal(new THREE.Vector3(x, camera.position.y, z));
+    const feetY = local.y - 1.7;
+    if (!canOccupy(local.x, local.z, playerRadius, interior.userData.walkBounds)) return false;
+    if (!interior.userData.canWalkAt(local.x, local.z, feetY, playerRadius)) return false;
+    return canOccupy(x, z, playerRadius, null, interior.userData.collisionBoxes || []);
   }
 
   const worldBounds = WORLD_CONFIG.bounds;
@@ -697,15 +632,22 @@ function movePlayer(delta) {
   );
   camera.position.x = resolved.x;
   camera.position.z = resolved.z;
-  camera.position.y = 1.7;
+  if (currentInterior) {
+    const interior = currentInterior.interior;
+    const local = interior.worldToLocal(camera.position.clone());
+    const feetY = interior.userData.getWalkHeight(local.x, local.z, local.y - 1.7);
+    const eyePosition = interior.localToWorld(new THREE.Vector3(local.x, feetY + 1.7, local.z));
+    camera.position.y = eyePosition.y;
+  } else {
+    camera.position.y = 1.7;
+  }
 }
 function nearestDoor() {
   if (currentInterior) return null;
   const available = interactableDoors.filter((house) => {
     if (!house.root.visible) return false;
-    // Keep the correct exterior side, but do not require the player to aim
-    // at the tiny door marker. E works throughout the nearby entrance area.
-    return (camera.position.z - house.center.z) * house.frontSide >= 0.2;
+    const outside = camera.position.clone().sub(house.doorPosition);
+    return outside.dot(house.doorNormal) >= 0.2;
   });
   return findNearestByDistance(camera.position, available, 3.2, (house) => house.doorPosition);
 }
@@ -738,17 +680,23 @@ function openNpcDialog(walker) {
   npcDialog.classList.remove('is-hidden');
   toast.classList.remove('visible');
 }
+function yawForDirection(direction) {
+  return Math.atan2(-direction.x, -direction.z);
+}
 function enterHouse(house) {
   house.root.visible = false;
   if (house.marker) house.marker.visible = false;
   house.interior.visible = true;
   currentInterior = house;
-  const cameraOffset = new THREE.Vector3(0, 1.7, 1.25).applyAxisAngle(new THREE.Vector3(0, 1, 0), house.frontSide < 0 ? Math.PI : 0);
-  camera.position.set(house.center.x + cameraOffset.x, 1.7, house.center.z + cameraOffset.z);
-  camera.rotation.set(0, house.frontSide < 0 ? Math.PI : 0, 0, 'YXZ');
+
+  const entry = house.interior.userData.entryPoint.clone();
+  entry.y += 1.7;
+  camera.position.copy(house.interior.localToWorld(entry));
+  const inward = house.doorNormal.clone().negate();
+  camera.rotation.set(0, yawForDirection(inward), 0, 'YXZ');
   locationLabel.textContent = house.name.toUpperCase().replaceAll('-', ' ') + ' / INTERIOR';
   worldState.textContent = 'INDOOR';
-  showToast('ENTERED / PRESS E TO EXIT');
+  showToast('ENTERED / E TO EXIT · STAIRS TO UPPER FLOORS');
 }
 function exitHouse() {
   const house = currentInterior;
@@ -757,8 +705,9 @@ function exitHouse() {
   house.root.visible = true;
   if (house.marker) house.marker.visible = true;
   currentInterior = null;
-  camera.position.set(house.center.x, 1.7, house.doorPosition.z + house.frontSide * 2.4);
-  camera.rotation.set(0, house.frontSide < 0 ? Math.PI : 0, 0, 'YXZ');
+  const outside = house.doorPosition.clone().addScaledVector(house.doorNormal, 2.4);
+  camera.position.set(outside.x, house.doorPosition.y + 1.7, outside.z);
+  camera.rotation.set(0, yawForDirection(house.doorNormal), 0, 'YXZ');
   locationLabel.textContent = 'DISTRICT 14 / STREET';
   worldState.textContent = 'OUTDOOR';
   showToast('BACK TO THE STREET');
@@ -868,7 +817,7 @@ function updateUI() {
     if (distance > 3.8 || !activeNpcDialog.root.visible) closeNpcDialog();
   }
 
-  if (currentInterior) hint.textContent = 'E / OPUSTIT INTERIÉR';
+  if (currentInterior) hint.textContent = 'E / OPUSTIT DŮM · SCHODIŠTĚ / DALŠÍ PODLAŽÍ';
   else if (activeNpcDialog) hint.textContent = 'E / ZAVŘÍT ROZHOVOR';
   else if (pedestrian && (!door || pedestrian.distance <= door.distance)) {
     hint.textContent = `E / PROMLOUVIT · ${pedestrian.target.interaction.name.toUpperCase()}`;
@@ -915,7 +864,6 @@ async function initWorld() {
   });
   updateLoading(100, 'Ready');
   worldState.textContent = 'READY';
-  await Promise.all(houses.map((house) => house.interior.userData.ready));
   window.setTimeout(() => {
     loadingScreen.classList.add('is-hidden');
     welcomeScreen.classList.remove('is-hidden');
