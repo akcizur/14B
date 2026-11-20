@@ -45,6 +45,95 @@ export function measureBuildingBounds(buildingRoot) {
   };
 }
 
+export function measureFacadeOpenings(buildingRoot, measuredBounds = measureBuildingBounds(buildingRoot)) {
+  buildingRoot.updateWorldMatrix(true, true);
+  const origin = buildingRoot.getWorldPosition(new THREE.Vector3());
+  const orientation = buildingRoot.getWorldQuaternion(new THREE.Quaternion());
+  const inverseRigid = new THREE.Matrix4()
+    .compose(origin, orientation, new THREE.Vector3(1, 1, 1))
+    .invert();
+  const candidates = [];
+
+  buildingRoot.traverse((object) => {
+    if (!object.isMesh || !object.geometry) return;
+    const labels = [];
+    let parent = object;
+    while (parent && parent !== buildingRoot.parent) {
+      if (parent.name) labels.push(parent.name);
+      parent = parent.parent;
+      if (parent === buildingRoot.parent) break;
+    }
+    const materials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of materials) if (material?.name) labels.push(material.name);
+    if (!/(window|glass|glazing|fenster)/i.test(labels.join(' '))) return;
+
+    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+    const source = object.geometry.boundingBox;
+    if (!source || source.isEmpty()) return;
+    const transform = new THREE.Matrix4().multiplyMatrices(inverseRigid, object.matrixWorld);
+    const local = new THREE.Box3();
+    for (const point of boxCorners(source)) local.expandByPoint(point.applyMatrix4(transform));
+    const size = local.getSize(new THREE.Vector3());
+    if (size.y < 0.35 || Math.max(size.x, size.z) < 0.3) return;
+
+    const center = local.getCenter(new THREE.Vector3());
+    const distances = [
+      ['front', Math.abs(measuredBounds.maxZ - center.z)],
+      ['back', Math.abs(center.z - measuredBounds.minZ)],
+      ['left', Math.abs(center.x - measuredBounds.minX)],
+      ['right', Math.abs(measuredBounds.maxX - center.x)]
+    ].sort((a, b) => a[1] - b[1]);
+    const [side, distanceToFacade] = distances[0];
+    if (distanceToFacade > 0.65) return;
+
+    candidates.push({
+      side,
+      minX: local.min.x, maxX: local.max.x,
+      minY: local.min.y, maxY: local.max.y,
+      minZ: local.min.z, maxZ: local.max.z,
+      centerX: center.x,
+      centerY: center.y,
+      centerZ: center.z
+    });
+  });
+
+  // A framed window can be split into glass, rails and mullions. Merge pieces
+  // that belong to the same physical aperture before creating the interior.
+  const merged = [];
+  for (const item of candidates.sort((a, b) => a.side.localeCompare(b.side) || a.centerY - b.centerY || a.centerX - b.centerX)) {
+    const existing = merged.find((candidate) =>
+      candidate.side === item.side &&
+      Math.abs(candidate.centerX - item.centerX) < 0.42 &&
+      Math.abs(candidate.centerY - item.centerY) < 0.42 &&
+      Math.abs(candidate.centerZ - item.centerZ) < 0.42
+    );
+    if (!existing) {
+      merged.push({ ...item });
+      continue;
+    }
+    existing.minX = Math.min(existing.minX, item.minX);
+    existing.maxX = Math.max(existing.maxX, item.maxX);
+    existing.minY = Math.min(existing.minY, item.minY);
+    existing.maxY = Math.max(existing.maxY, item.maxY);
+    existing.minZ = Math.min(existing.minZ, item.minZ);
+    existing.maxZ = Math.max(existing.maxZ, item.maxZ);
+    existing.centerX = (existing.minX + existing.maxX) / 2;
+    existing.centerY = (existing.minY + existing.maxY) / 2;
+    existing.centerZ = (existing.minZ + existing.maxZ) / 2;
+  }
+
+  return merged.map((item) => ({
+    side: item.side,
+    center: item.side === 'front' || item.side === 'back' ? item.centerX : item.centerZ,
+    sill: item.minY - measuredBounds.minY,
+    width: item.side === 'front' || item.side === 'back'
+      ? item.maxX - item.minX
+      : item.maxZ - item.minZ,
+    height: item.maxY - item.minY,
+    centerY: item.centerY - measuredBounds.minY
+  })).filter((item) => item.width >= 0.45 && item.height >= 0.45);
+}
+
 export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1) {
   const values = [bounds?.minX, bounds?.maxX, bounds?.minY, bounds?.maxY, bounds?.minZ, bounds?.maxZ];
   if (!values.every(Number.isFinite) ||
@@ -415,6 +504,7 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
   const bounds = measureBuildingBounds(buildingRoot);
   const frontSide = definition.frontSide ?? 1;
   const plan = deriveInteriorPlan(bounds, definition.architecture || {}, frontSide);
+  const facadeWindows = measureFacadeOpenings(buildingRoot, bounds);
   const origin = buildingRoot.getWorldPosition(new THREE.Vector3());
   const orientation = buildingRoot.getWorldQuaternion(new THREE.Quaternion());
   const interior = new THREE.Group();
@@ -445,11 +535,32 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
   const leftX = plan.bounds.minX + wall / 2;
   const rightX = plan.bounds.maxX - wall / 2;
 
+  const openingsForFacade = (side, level, fallback) => {
+    const floorY = baseY + level * floorHeight;
+    const measured = facadeWindows.filter((window) => {
+      const windowBottom = window.sill;
+      const windowTop = windowBottom + window.height;
+      return window.side === side &&
+        window.center >= (side === 'front' || side === 'back' ? inner.minX : inner.minZ) + 0.18 &&
+        window.center <= (side === 'front' || side === 'back' ? inner.maxX : inner.maxZ) - 0.18 &&
+        windowBottom >= level * floorHeight + 0.42 &&
+        windowTop <= (level + 1) * floorHeight - plan.slab - 0.12;
+    }).map((window) => ({
+      kind: 'window',
+      center: window.center,
+      width: Math.min(window.width, side === 'front' || side === 'back' ? plan.innerWidth * 0.42 : plan.innerDepth * 0.42),
+      sill: window.sill - level * floorHeight,
+      height: Math.min(window.height, wallHeight - 0.58)
+    })).filter((window) => window.sill > 0 &&
+      window.sill + window.height < wallHeight - 0.02);
+    return measured.length ? measured : fallback;
+  };
+
   for (let level = 0; level < storeys; level += 1) {
     const floorY = baseY + level * floorHeight;
     addFloorWithStairOpening(interior, plan, `level-${level}-floor`, floorY, materials.floor, level > 0);
 
-    const frontOpenings = level === 0
+    const defaultFront = level === 0
       ? [
           { kind: 'window', center: inner.minX + plan.innerWidth * 0.15, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
           { kind: 'door', center: plan.entryX, width: plan.doorWidth, sill: 0, height: plan.doorHeight },
@@ -459,23 +570,33 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
           { kind: 'window', center: inner.minX + plan.innerWidth * 0.25, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
           { kind: 'window', center: inner.minX + plan.innerWidth * 0.72, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight }
         ];
-    const backOpenings = [
+    const frontOpenings = [
+      ...openingsForFacade(frontSide > 0 ? 'front' : 'back', level, []).filter((opening) =>
+        level !== 0 || Math.abs(opening.center - plan.entryX) >= (opening.width + plan.doorWidth) / 2 + 0.12
+      ),
+      ...(level === 0 ? [{ kind: 'door', center: plan.entryX, width: plan.doorWidth, sill: 0, height: plan.doorHeight }] : [])
+    ];
+    const resolvedFrontOpenings = frontOpenings.some((opening) => opening.kind === 'window')
+      ? frontOpenings
+      : defaultFront;
+    const backOpenings = openingsForFacade(frontSide > 0 ? 'back' : 'front', level, [
       { kind: 'window', center: inner.minX + plan.innerWidth * 0.28, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight },
       { kind: 'window', center: inner.minX + plan.innerWidth * 0.73, width: plan.windowWidth, sill: plan.windowSill, height: plan.windowHeight }
-    ];
-    const sideOpening = [{
+    ]);
+    const leftOpenings = openingsForFacade('left', level, [{
       kind: 'window',
       center: inner.minZ + plan.innerDepth * 0.57,
       width: Math.min(plan.windowWidth, plan.innerDepth * 0.35),
       sill: plan.windowSill,
       height: plan.windowHeight
-    }];
+    }]);
+    const rightOpenings = openingsForFacade('right', level, leftOpenings);
 
     buildWallWithOpenings(interior, {
       axis: 'x', name: `level-${level}-front`, coordinate: frontZ,
       start: inner.minX, end: inner.maxX, floorY, height: wallHeight,
       thickness: wall, material: materials.wall, frame: materials.frame, glass: materials.glass,
-      openings: frontOpenings
+      openings: resolvedFrontOpenings
     });
     buildWallWithOpenings(interior, {
       axis: 'x', name: `level-${level}-back`, coordinate: backZ,
@@ -487,13 +608,13 @@ export function buildBuildingInterior(buildingRoot, definition = {}) {
       axis: 'z', name: `level-${level}-left`, coordinate: leftX,
       start: inner.minZ, end: inner.maxZ, floorY, height: wallHeight,
       thickness: wall, material: materials.wall, frame: materials.frame, glass: materials.glass,
-      openings: sideOpening
+      openings: leftOpenings
     });
     buildWallWithOpenings(interior, {
       axis: 'z', name: `level-${level}-right`, coordinate: rightX,
       start: inner.minZ, end: inner.maxZ, floorY, height: wallHeight,
       thickness: wall, material: materials.wall, frame: materials.frame, glass: materials.glass,
-      openings: sideOpening
+      openings: rightOpenings
     });
 
     buildFloorPartitions(interior, plan, level, materials, collidableMeshes);
