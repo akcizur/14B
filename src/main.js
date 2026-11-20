@@ -441,9 +441,26 @@ function createFallbackVehicleWheels(root, height) {
   root.updateWorldMatrix(true, true);
 
   if (localBounds.isEmpty()) return [];
-  const size = localBounds.getSize(new THREE.Vector3());
-  const center = localBounds.getCenter(new THREE.Vector3());
-  const radius = Math.max(0.12, height * 0.16);
+  const worldSize = localBounds.getSize(new THREE.Vector3());
+  const worldCenter = localBounds.getCenter(new THREE.Vector3());
+  const scaleX = Math.max(1e-6, Math.abs(root.scale.x));
+  const scaleY = Math.max(1e-6, Math.abs(root.scale.y));
+  const scaleZ = Math.max(1e-6, Math.abs(root.scale.z));
+
+  // Box3 measurements are world-sized. Wheel meshes are children of this
+  // normalized GLB root, so convert their dimensions and positions back into
+  // root-local coordinates or normalization scale would be applied twice.
+  const size = new THREE.Vector3(
+    worldSize.x / scaleX,
+    worldSize.y / scaleY,
+    worldSize.z / scaleZ
+  );
+  const center = new THREE.Vector3(
+    (worldCenter.x - root.position.x) / scaleX,
+    (worldCenter.y - root.position.y) / scaleY,
+    (worldCenter.z - root.position.z) / scaleZ
+  );
+  const radius = Math.max(0.12, height * 0.16) / ((scaleX + scaleY + scaleZ) / 3);
   const tireWidth = radius * 0.48;
   const rubber = makeMaterial(0x171916, 0.98);
   const hub = makeMaterial(0x74796f, 0.52, 0.3);
@@ -454,9 +471,9 @@ function createFallbackVehicleWheels(root, height) {
       const pivot = new THREE.Group();
       pivot.name = `generated-wheel-${side}-${end}`;
       pivot.position.set(
-        center.x - root.position.x + side * size.x * 0.47,
-        localBounds.min.y - root.position.y + radius,
-        center.z - root.position.z + end * size.z * 0.29
+        center.x + side * size.x * 0.47,
+        (localBounds.min.y - root.position.y) / scaleY + radius,
+        center.z + end * size.z * 0.29
       );
       // CylinderGeometry is Y-axled. Rotate the pivot so its local Y axis
       // becomes the vehicle's X axle, then spin around that local Y axis.
