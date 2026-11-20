@@ -241,8 +241,7 @@ function addEntryWalkway(house) {
   const side = Math.sign(house.center.z) || -Math.sign(normal.z);
   const sidewalkEdge = side * (sidewalk.z + sidewalk.depth / 2 - 0.06);
   const distance = (sidewalkEdge - house.doorPosition.z) / normal.z;
-  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15 ||
-      Math.sign(distance) !== Math.sign(1)) return;
+  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15) return;
 
   const yaw = Math.atan2(normal.x, normal.z);
   const pathStart = house.doorPosition.clone().addScaledVector(normal, config.thresholdDepth / 2);
@@ -548,19 +547,6 @@ function buildBackdrop() {
   addPlane(world, 'far-grass', 0, -0.2, 0, 150, 100, low);
 }
 
-async function buildInteriorEntranceMarker(house) {
-  const markerPosition = house.doorPosition.clone().addScaledVector(house.doorNormal, -0.035);
-  const markerYaw = Math.atan2(-house.doorNormal.x, -house.doorNormal.z);
-  const { root } = await createAsset('Door', {
-    height: 2.2,
-    position: [markerPosition.x, markerPosition.y, markerPosition.z],
-    rotationY: markerYaw,
-    parent: world,
-    name: `${house.name}-door-marker`
-  });
-  house.marker = root;
-}
-
 function getMovingActorColliders() {
   const dynamic = [];
   for (const vehicle of vehicles) {
@@ -850,7 +836,6 @@ async function initWorld() {
   const steps = [
     ['Buildings', async () => {
       await Promise.all(WORLD_CONFIG.buildings.map(addBuilding));
-      await Promise.all(houses.map(buildInteriorEntranceMarker));
     }],
     ['Street assets', addStreetProps],
     ['Street lights', addStreetLights],
