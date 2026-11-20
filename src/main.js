@@ -454,9 +454,9 @@ function createFallbackVehicleWheels(root, height) {
       const pivot = new THREE.Group();
       pivot.name = `generated-wheel-${side}-${end}`;
       pivot.position.set(
-        center.x + side * size.x * 0.47,
+        center.x - root.position.x + side * size.x * 0.47,
         localBounds.min.y - root.position.y + radius,
-        center.z + end * size.z * 0.29
+        center.z - root.position.z + end * size.z * 0.29
       );
       // CylinderGeometry is Y-axled. Rotate the pivot so its local Y axis
       // becomes the vehicle's X axle, then spin around that local Y axis.
@@ -663,10 +663,18 @@ function nearestDoor() {
 }
 function nearestPedestrian() {
   if (currentInterior) return null;
+  const candidates = walkers.filter((walker) => {
+    if (!walker.interaction || !walker.root.visible) return false;
+    const distance = Math.hypot(
+      walker.root.position.x - camera.position.x,
+      walker.root.position.z - camera.position.z
+    );
+    return distance <= walker.interaction.radius;
+  });
   return findNearestByDistance(
     camera.position,
-    walkers.filter((walker) => walker.interaction),
-    2.35,
+    candidates,
+    5,
     (walker) => walker.root.position
   );
 }
@@ -789,7 +797,6 @@ function animateActors(delta) {
     }
 
     if (travelled > 0) {
-      const roll = wheelAngularDelta(travelled, 1);
       for (const wheel of vehicle.wheels) {
         const angle = wheelAngularDelta(travelled, wheel.radius);
         if (wheel.axis === 'y') wheel.object.rotateY(-angle);
