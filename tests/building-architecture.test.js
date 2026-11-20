@@ -44,7 +44,7 @@ test('interior floorplates and roof are derived from the measured exterior shell
   assert.ok(plan.innerDepth < plan.depth);
   assert.ok(plan.floorHeight >= 2.55 && plan.floorHeight <= 3.2);
   assert.ok(plan.topY <= plan.bounds.maxY);
-  assert.ok(root.getObjectByName('level-0-floor-part-0'));
+  assert.ok(root.getObjectByName('level-0-floor'));
   assert.ok(root.getObjectByName('stair-0-flight-a-step-1'));
   assert.ok(root.getObjectByName('stair-1-flight-b-step-9'));
   assert.ok(root.children.some((child) => child.name.includes('-glass')));
