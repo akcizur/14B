@@ -14,6 +14,7 @@ This folder is the living reference for the setting, its fictional history, phys
 - [World Lore](WORLD-LORE.md) — premise, tone, setting rules, canon boundaries.
 - [Masterplan Concept 01](MASTERPLAN-CONCEPT-01.md) — recommended habitat shape study, proposed street topology, design principles, design gates, and open decisions. Not yet approved canon.
 - [Masterplan Study A](MASTERPLAN-STUDY-A.md) — compares three habitat envelopes and three exactly-three-street layouts, with qualitative height bands, Main Street principles, sightline tests, and first-segment acceptance criteria. Proposal only.
+- [Masterplan Study B](MASTERPLAN-STUDY-B.md) — proportional scenarios for habitat, street widths, building height bands, branch lengths, airspace, and a recommended small first playable slice. All numeric values are provisional.
 - [Ring Habitat](RING-HABITAT.md) — protective ring and visual presence.
 - [Three Streets](THREE-STREETS.md) — exactly three streets, their hierarchy, and masterplan requirements.
 - [Artificial Atmosphere](ARTIFICIAL-ATMOSPHERE.md) — sky, haze, lighting, environmental depth, and open questions.
