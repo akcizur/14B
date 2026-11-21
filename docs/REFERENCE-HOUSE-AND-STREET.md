@@ -107,7 +107,19 @@ Vstup se měří z materiálu **door_white**. Střed, šířka, výška a práh 
 
 Zvýšený práh se připojuje dvěma schody stejné výšky k venkovní cestě. Pěší cesta má horní povrch ve stejné výšce jako chodník; její hrana se dotýká prvního stupně bez mezery. Vnitřní podlaha začíná v úrovni skutečného prahu. Nejde o fyzické otevírání dveřního křídla; vstup stále přepíná vnější a vnitřní geometrii.
 
-## 6. Ulice a parcela
+## 6. Main Street a parcela
+
+První uliční úsek je zárodkem **Main Street**, jediné dominantní obytné osy District 14. Finální svět má být tvořen dlouhou ulicí pokračující k horizontu v obou směrech a řadami domů po obou stranách. Aktuální krátký úsek je pouze první ověřovaný segment, nikoli hranice budoucí mapy.
+
+Main Street má souvislou vozovku a chodníky po obou stranách. Domy se řadí podél obou uličních front, každý na vlastní parcele s vlastním vstupem a metrickým interiérem. Zástavba může mít přirozené odstupy a menší předprostory, ale nesmí se rozpadnout na izolované objekty náhodně rozmístěné kolem silnice.
+
+Vedlejší ulice a paralelní komunikace budou velmi vzácné. Nezakládat pravoúhlou síť ulic ani bloky jako výchozí generátor. Další komunikaci přidat pouze s konkrétním účelem a po samostatném návrhu. Pěší průchody, přístupové cesty, chodníky a vjezdy nejsou automaticky dalšími ulicemi.
+
+Pokud bude pro technickou kontinuitu použito loop/streaming napojení, musí být skryté v geometrii a perspektivě. Hráč má vidět dlouhou obytnou ulici pokračující za horizont, nikoli kruhovou silnici nebo návratovou zatáčku.
+
+První ověřovaná ulice je klidná obytná komunikace, nikoli nedokončená městská křižovatka. Šířky jsou záměrně kompaktní:
+
+| Prvek | Rozměr |
 
 První ulice je klidná obytná komunikace, nikoli nedokončená městská křižovatka. Šířky jsou záměrně kompaktní:
 
