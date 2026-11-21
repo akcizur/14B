@@ -136,3 +136,17 @@ test('hierarchy rejects duplicate IDs and orphaned building definitions', () => 
 test('runtime validates the authored settlement hierarchy before creating scene objects', () => {
   assert.match(fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8'), /assertValidWorldHierarchy\(WORLD_CONFIG\.hierarchy, WORLD_CONFIG\.buildings\)/);
 });
+
+
+test('air corridor prototype is explicitly data-driven and renders above the street axis', () => {
+  const air = WORLD_CONFIG.airLayer;
+  assert.equal(air.enabled, true);
+  assert.equal(air.corridor.length, 36);
+  assert.equal(air.corridor.width, 6);
+  assert.deepEqual(air.lanes.map((lane) => lane.centerY), [18, 22]);
+  assert.deepEqual(air.corridor.edgeMarkerZ, [-3, 3]);
+  const main = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
+  assert.match(main, /function addAirLayerPrototype\(\)/);
+  assert.match(main, /addAirLayerPrototype\(\);/);
+  assert.match(main, /air-lower|air-upper/);
+});
