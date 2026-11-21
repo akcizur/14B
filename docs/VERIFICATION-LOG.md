@@ -3,18 +3,18 @@
 ## Referenční dům a první obytná ulice
 
 **PR:** [#7](https://github.com/akcizur/14B/pull/7)  
-**Ověřovaný commit:** `c55b4f21bd2c784c82fc8ddbf1e7cb5dbb5a31a2`  
-**Workflow:** [44842534748](https://github.com/akcizur/14B/actions/runs/44842534748)
+**Ověřovaný commit:** `74d14d7ec8de314105bc8c4d1387c8c2f39306c5`  
+**Workflow:** [44843761197](https://github.com/akcizur/14B/actions/runs/44843761197)
 
 | Kontrola | Výsledek | Poznámka |
 |---|---|---|
-| Node.js regresní testy | **46 prošlo, 0 selhalo** | GLB materiálové skupiny, měření fasády, dveře, okna, dispozice, schodiště, kolize a hierarchie |
+| Node.js regresní testy | **48 prošlo, 0 selhalo** | GLB materiálové skupiny, fasáda, dveře, okna, podlaží, adaptivní schodiště, chodník a hierarchie |
 | Produkční Vite build | **úspěšný** | Vite 6.4.5, build vytvořen |
 | GitHub Pages artefakt | **úspěšný** | artefakt `github-pages` vytvořen |
-| Deploy z pull requestu | přeskočen | očekávané chování workflow; deploy probíhá až po sloučení do main |
-| Vizuální kontrola v prohlížeči | **nepotvrzena** | automatický prohlížeč odmítl lokální stránku systémovým blokováním; nelze tvrdit, že interiér prošel ruční vizuální kontrolou |
+| Deploy z pull requestu | přeskočen | očekávané chování; deploy probíhá po sloučení do main |
+| Vizuální kontrola v prohlížeči | **nepotvrzena** | automatický prohlížeč odmítl lokální stránku systémovým blokováním; interiér proto není ručně vizuálně schválen |
 
-Úspěšný CI běh potvrzuje, že zdrojové soubory projdou regresními testy a produkční kompilací. **Neznamená vizuální schválení** konkrétní fasády, schodišť, skel nebo proporcí místností.
+Úspěšný CI běh potvrzuje regresní testy a produkční kompilaci. **Neznamená vizuální schválení** konkrétní fasády, schodišť, skel nebo proporcí místností.
 
 ### Kontroly zahrnuté v testech
 
