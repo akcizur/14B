@@ -271,7 +271,7 @@ function addEntryWalkway(house) {
     step.receiveShadow = true;
     world.add(step);
   }
-  const pathStart = house.doorPosition.clone().addScaledVector(normal, 0.80);
+  const pathStart = house.doorPosition.clone().addScaledVector(normal, 0.72);
   const pathEnd = house.doorPosition.clone().addScaledVector(normal, distance);
   const pathLength = pathStart.distanceTo(pathEnd);
   if (pathLength > 0.1) {
