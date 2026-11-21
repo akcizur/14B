@@ -1,53 +1,58 @@
 /**
- * District 14 starter settlement.
- *
- * All world distances are metres. The first playable slice deliberately keeps
- * only the primary street corridor and one reference house. Growth happens by
- * adding parcels and buildings to the hierarchy, not by scattering props.
+ * District 14 reference settlement.
+ * All geometry is authored in metres. The first slice is deliberately one
+ * measured building, one connected access path and one simple residential street.
  */
 export const WORLD_CONFIG = {
   id: 'district-14',
-  version: 2,
+  version: 3,
   units: 'meters',
 
-  bounds: { minX: -28, maxX: 28, minZ: -23, maxZ: 23 },
+  bounds: { minX: -20, maxX: 20, minZ: -16, maxZ: 14 },
   spawn: {
-    position: [0, 1.7, 6.15],
+    position: [0, 1.7, -4.0],
     rotation: [0, 0, 0]
   },
 
   environment: {
-    background: 0xaebcc0,
-    fogColor: 0xaebcc0,
-    fogDensity: 0.0082
+    background: 0xb9c2c2,
+    fogColor: 0xb9c2c2,
+    fogDensity: 0.0065
   },
 
   street: {
-    ground: { position: [0, -0.11, 0], size: [60, 50] },
-    road: { position: [0, -0.025, 0], size: [54, 9] },
-    sidewalk: { z: 5.9, width: 54, depth: 2.45, y: 0.015 },
-    curb: { z: 4.62, width: 54, depth: 0.2, height: 0.16, y: -0.03 },
-    entryPath: { width: 1.45, thickness: 0.07, thresholdDepth: 0.8 },
-    laneMarkings: { startX: -24, endX: 24, step: 8, width: 3.2, depth: 0.1, y: 0.004 },
-    crosswalks: { centersX: [0], firstOffset: -4, lastOffset: 4, spacing: 0.82, width: 0.43, depth: 8.2, y: 0.008 }
+    ground: { position: [0, -0.11, -1.4], size: [38, 28] },
+    road: { position: [0, -0.025, 0], size: [36, 6] },
+    sidewalk: { z: 4.0, width: 34, depth: 1.6, y: 0.015 },
+    curb: { z: 3.08, width: 36, depth: 0.2, height: 0.14, y: -0.02 },
+    entryPath: { width: 1.35, thickness: 0.07, thresholdDepth: 0.55 }
   },
 
   buildings: [
     {
       id: 'house-001',
       asset: 'Building Green',
-      position: [0, 0, -13],
-      height: 10.1,
+      position: [0, 0, -8.8],
+      height: 13.4,
       rotationY: 0,
       role: 'house',
       frontSide: 1,
-      architecture: { storeys: 3, wallThickness: 0.18, slabThickness: 0.16 },
-      collision: { type: 'bounds', scaleX: 0.88, scaleZ: 0.82, minWidth: 4, minDepth: 3.3 }
+      architecture: {
+        storeys: 4,
+        // Calibrated to the four visible facade bands in building-green.glb.
+        // Level zero is the actual door threshold, not an assumed ground datum.
+        floorLevels: [0, 3.30, 5.77, 8.28, 10.79],
+        wallThickness: 0.18,
+        slabThickness: 0.16,
+        stairFlightWidth: 0.98,
+        stairTreads: 10
+      },
+      collision: { type: 'bounds', scaleX: 0.94, scaleZ: 0.9, minWidth: 4, minDepth: 3.3 }
     }
   ],
 
-  // Settlement grows in a deliberate order:
-  // district -> street -> parcel -> building -> storey -> rooms.
+  // D14 hierarchy is grown deliberately: district -> street -> parcel -> house
+  // -> storeys -> rooms. The shared stairwell belongs to the building.
   hierarchy: {
     id: 'district-14',
     type: 'district',
@@ -69,27 +74,32 @@ export const WORLD_CONFIG = {
                     id: 'house-001-ground-floor',
                     type: 'storey',
                     children: [
-                      { id: 'house-001-entry-hall', type: 'room' },
-                      { id: 'house-001-living-room', type: 'room' },
-                      { id: 'house-001-service-room', type: 'room' }
+                      { id: 'house-001-ground-left-room', type: 'room' },
+                      { id: 'house-001-ground-right-room', type: 'room' }
                     ]
                   },
                   {
                     id: 'house-001-first-floor',
                     type: 'storey',
                     children: [
-                      { id: 'house-001-first-corridor', type: 'room' },
-                      { id: 'house-001-first-room-a', type: 'room' },
-                      { id: 'house-001-first-room-b', type: 'room' }
+                      { id: 'house-001-first-left-room', type: 'room' },
+                      { id: 'house-001-first-right-room', type: 'room' }
                     ]
                   },
                   {
                     id: 'house-001-second-floor',
                     type: 'storey',
                     children: [
-                      { id: 'house-001-second-corridor', type: 'room' },
-                      { id: 'house-001-second-room-a', type: 'room' },
-                      { id: 'house-001-second-room-b', type: 'room' }
+                      { id: 'house-001-second-left-room', type: 'room' },
+                      { id: 'house-001-second-right-room', type: 'room' }
+                    ]
+                  },
+                  {
+                    id: 'house-001-third-floor',
+                    type: 'storey',
+                    children: [
+                      { id: 'house-001-third-left-room', type: 'room' },
+                      { id: 'house-001-third-right-room', type: 'room' }
                     ]
                   }
                 ]
@@ -101,8 +111,6 @@ export const WORLD_CONFIG = {
     ]
   },
 
-  // Empty collections are deliberate: this first slice is the reference
-  // building + the street. Add a system only when the next growth phase needs it.
   streetProps: [],
   trees: [],
   vehicles: [],
@@ -111,7 +119,7 @@ export const WORLD_CONFIG = {
   streetLights: {
     sides: [],
     positionsX: [],
-    z: 5.95,
+    z: 4.0,
     poleHeight: 4.4,
     collision: { radius: 0.12 }
   }
