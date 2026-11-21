@@ -302,7 +302,7 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
   const floorHeights = floorLevels.slice(1).map((level, index) => level - floorLevels[index]);
   const storeys = floorHeights.length;
   const topY = baseY + floorLevels[floorLevels.length - 1];
-  if (topY > bounds.maxY - 0.25) {
+  if (topY > bounds.maxY - 0.08) {
     throw new Error('Interior top floor exceeds the measured structural shell.');
   }
 
