@@ -353,15 +353,17 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
   const entryX = door?.center ?? architecture.doorCenter ?? (inner.minX + inner.maxX) / 2;
   const stairMinX = clamp(entryX - stairWidth / 2, inner.minX + 0.16, inner.maxX - stairWidth - 0.16);
   const stairMaxX = stairMinX + stairWidth;
-  const stairRun = Math.min(2.05, innerDepth * 0.48);
-  // Leave a full-height landing between the front door and the first tread.
-  const stairFrontZ = frontSide > 0 ? inner.maxZ - 1.05 : inner.minZ + 1.05;
+  const frontClearance = 0.70;
+  const landingDepth = 0.65;
+  const rearClearance = 0.25;
+  const stairRun = Math.min(2.60, innerDepth - frontClearance - landingDepth - rearClearance);
+  if (stairRun < 2.35) throw new Error('Building depth cannot fit a comfortable two-flight stair and landing.');
+  // The first flight starts after a clear entrance hall. The U-turn landing is
+  // at the rear of the core, leaving a short structural strip behind it.
+  const stairFrontZ = frontSide > 0 ? inner.maxZ - frontClearance : inner.minZ + frontClearance;
   const stairBackZ = frontSide > 0 ? stairFrontZ - stairRun : stairFrontZ + stairRun;
   const stairMinZ = Math.min(stairFrontZ, stairBackZ);
   const stairMaxZ = Math.max(stairFrontZ, stairBackZ);
-  const landingDepth = Math.min(0.9, innerDepth - stairRun - 1.45);
-  if (landingDepth < 0.68) throw new Error('Building depth cannot fit a safe stair landing.');
-
   const stairOpening = {
     minX: stairMinX - 0.08,
     maxX: stairMaxX + 0.08,
@@ -369,6 +371,20 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
     maxZ: frontSide > 0 ? stairMaxZ + 0.08 : stairMaxZ + landingDepth
   };
   const averageFloorHeight = floorHeights.reduce((sum, value) => sum + value, 0) / storeys;
+  const targetRiserHeight = clamp(architecture.targetRiserHeight ?? 0.16, 0.14, 0.18);
+  const stairLevels = floorHeights.map((floorHeight) => {
+    const risersPerFlight = Math.max(6, Math.round(floorHeight / (2 * targetRiserHeight)));
+    const totalRisers = risersPerFlight * 2;
+    const riserHeight = floorHeight / totalRisers;
+    return {
+      risersPerFlight,
+      totalRisers,
+      riserHeight,
+      treadDepth: stairRun / risersPerFlight,
+      run: stairRun,
+      comfort: 2 * riserHeight + stairRun / risersPerFlight
+    };
+  });
   const doorWidth = door?.width ?? architecture.doorWidth ?? 1.0;
   const doorHeight = door?.height ?? architecture.doorHeight ?? 2.1;
   const walkBounds = {
@@ -399,9 +415,11 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
       width: stairWidth,
       flightWidth: stairFlightWidth,
       gap: stairGap,
-      treadCount: architecture.stairTreads ?? 10,
-      treadDepth: stairRun / (architecture.stairTreads ?? 10),
-      rise: floorHeights[0] / ((architecture.stairTreads ?? 10) * 2),
+      run: stairRun,
+      frontClearance,
+      rearClearance,
+      targetRiserHeight,
+      levels: stairLevels,
       landingDepth,
       opening: stairOpening,
       laneOneX: stairMinX + stairFlightWidth / 2,
@@ -410,7 +428,7 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
     },
     corridorWidth: 1.0,
     entryX,
-    entryZ: frontSide > 0 ? inner.maxZ - 0.58 : inner.minZ + 0.58,
+    entryZ: frontSide > 0 ? inner.maxZ - 0.35 : inner.minZ + 0.35,
     doorWidth,
     doorHeight,
     walkBounds
@@ -627,10 +645,11 @@ function buildStairs(parent, plan, floorIndex, materials) {
   const floorY = plan.baseY + plan.floorLevels[floorIndex];
   const floorHeight = plan.floorHeights[floorIndex];
   const halfHeight = floorHeight / 2;
-  const tread = stair.treadDepth;
-  const count = stair.treadCount;
+  const level = stair.levels[floorIndex];
+  const tread = level.treadDepth;
+  const count = level.risersPerFlight;
   for (let index = 0; index < count; index += 1) {
-    const rise = (index + 1) * floorHeight / (count * 2);
+    const rise = (index + 1) * level.riserHeight;
     const zOne = stair.frontSide > 0
       ? stair.maxZ - (index + 0.5) * tread
       : stair.minZ + (index + 0.5) * tread;
@@ -678,8 +697,8 @@ function buildFloorPartitions(parent, plan, level, materials, colliders) {
   const inner = plan.inner;
   const doorHeight = Math.min(2.12, height - 0.12);
   const doorCenterZ = stair.frontSide > 0
-    ? stair.maxZ + 0.42
-    : stair.minZ - 0.42;
+    ? stair.maxZ + 0.12
+    : stair.minZ - 0.12;
 
   // Each half of the stair core opens directly to a clear, window-facing room.
   // The core is shared; these openings are apartment doors, not decorative cuts.
