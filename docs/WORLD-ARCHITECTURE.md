@@ -104,3 +104,58 @@ Nová ulice potřebuje skutečnou geometrii vozovky, obrub, přechodů a napojen
 - doprava, NPC a veřejný mobiliář.
 
 Automatické testy ověřují geometrii a data. Vizuální shoda konkrétního GLB, skel, schodišť a uličního vstupu vyžaduje samostatný průchod ve WebGL.
+
+## Návrhový příčný řez Main Street
+
+Tato sekce zavádí první rozměrový návrh pozemní a vzdušné vrstvy. Hodnoty označené jako **provisional** jsou pracovní parametry pro další geometrickou validaci, nikoli tvrzení o již implementovaném nebo otestovaném provozu.
+
+### Pozemní profil
+
+Stávající ověřovaný profil zůstává základní referencí:
+
+| Prvek | Návrhový rozměr | Stav |
+|---|---:|---|
+| Vozovka | 6,0 m | zachovat stávající baseline |
+| Chodník | 1,6 m na každé straně | zachovat stávající baseline |
+| Obruba | 0,20 × 0,14 m | zachovat stávající baseline |
+| Pěší přístup k domu | 1,80 m | zachovat stávající baseline |
+| Odsazení domu za chodníkem | cca 1,4 m | výchozí hodnota reference |
+| Parkování | lokální zálivy cca 2,2 m široké | provisional, pouze ve vybraných úsecích |
+
+Parkování se nesmí řešit souvislým pruhem, který by zúžil vozovku nebo chodník. Má vznikat jako lokální záliv či kapsa na vybraných parcelách, s přerušením u vstupů, rozhledových míst a pěších přechodů. Základní profil proto zůstává čitelný i bez zaparkovaných vozidel.
+
+### Vzdušný profil
+
+Pracovní varianta používá jeden koridor vedený nad podélnou osou Main Street:
+
+| Parametr | Návrhová hodnota | Stav |
+|---|---:|---|
+| Podélná osa koridoru | osa vozovky | provisional |
+| Šířka koridoru | 6,0 m | provisional |
+| Směry provozu | dva, výškově oddělené | návrhový princip |
+| Střed spodní letové hladiny | +18,0 m od úrovně vozovky | provisional |
+| Střed horní letové hladiny | +22,0 m od úrovně vozovky | provisional |
+| Předpokládaná výška vozidla | do 2,0 m | pracovní obálka, nutno potvrdit modelem |
+| Cílový odstup spodku vozidla od střechy reference | nejméně 3,5 m | předběžný kontrolní cíl |
+
+Dvě výškově oddělené hladiny jsou zvoleny proto, aby se protisměrná doprava nemusela rozdělit do dvou širokých koridorů nad fasádami. Skutečná obálka koridoru se musí počítat z rozměrů konkrétního flycaru, jeho kolizního tvaru, výšky střech a dynamické rezervy při zatáčení či stoupání.
+
+### Ochranné odstupy a uzly
+
+- Letová osa zůstává nad ulicí; koridor se nesmí posouvat nad obytné fasády jen kvůli snadnějšímu generování.
+- Žádný běžný průlet nesmí zasahovat do oken, lodžií, balkonů, střech ani interiérů.
+- Svislé stoupání a klesání se povolí jen v označených vertikálních uzlech, nikoli kdekoliv podél fasády.
+- Přistávací a nástupní plochy budou pouze na vybraných konstrukčně vhodných budovách nebo samostatných dopravních uzlech.
+- V okolí vstupů, chodníků a pěších předprostorů se nesmí nacházet nízko vedená letová trasa.
+- Každý uzel musí mít vyznačený přístup, čekací plochu, bezpečnou výškovou návaznost a prostor mimo hlavní pěší proud.
+
+### Kontrolní geometrie
+
+Před implementací je nutné ověřit příčný řez v měřítku 1:1: vozovku, obruby, chodníky, odsazení fasád, výšku střech referenčního domu, obálku vozidla a obě letové hladiny. Kontrola musí zahrnout i nejvyšší balkon, římsu nebo anténu, nikoli pouze základní střešní desku.
+
+Návrh se nepovažuje za schválený, dokud:
+1. kolizní obálka vozidla neprojde celou délkou koridoru bez kontaktu s budovami;
+2. výšková rezerva zůstane zachována i nad nejvyššími prvky střech;
+3. vertikální uzly nevedou přes obytné fasády a pěší zóny;
+4. pozemní profil zachová souvislý a bezpečný pěší průchod;
+5. bude provedena ruční vizuální kontrola ve WebGL.
