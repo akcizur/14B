@@ -161,6 +161,13 @@ export function validateWorldConfig(config, assetManifest) {
         if (!architecture || !Number.isInteger(architecture.storeys) ||
             architecture.storeys < 2 || architecture.storeys > 5) {
           add(`House "${item.id}" must declare 2–5 architectural storeys.`);
+        } else if (architecture.floorLevels !== undefined &&
+            (!Array.isArray(architecture.floorLevels) ||
+             architecture.floorLevels.length !== architecture.storeys + 1 ||
+             architecture.floorLevels[0] !== 0 ||
+             architecture.floorLevels.some((value, index, all) =>
+               !Number.isFinite(value) || (index > 0 && value - all[index - 1] < 2.25)))) {
+          add(`House "${item.id}" has invalid metric floor levels.`);
         }
       }
       if (collectionName === 'vehicles') {
