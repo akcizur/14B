@@ -27,7 +27,7 @@ Schodišťové jádro je společná část budovy a připojuje se přímo k Buil
 - přístupová cesta ke vstupu široká 1,80 m, výškově zarovnaná s chodníkem;
 - jedna parcela a jeden dům Building Green;
 - jeden měřený hlavní vstup a přístupová cesta;
-- čtyři konstrukční podlaží, schodišťové jádro a dvě místnosti na každém podlaží;
+- čtyři konstrukční podlaží, schodišťové jádro s cílovou výškou stoupání 0,16 m a dvě místnosti na každém podlaží;
 - žádná doprava, NPC, stromy, mobiliář ani vybavení interiéru.
 
 Žádný přechod ani odbočení se nekreslí bez skutečného napojení další ulice.
