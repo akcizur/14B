@@ -21,3 +21,8 @@ This log records important setting decisions and revisions. Implementation commi
 - **Clarified:** “Starship Ring” is a working concept/reference and does not establish real spacecraft engineering or resolved fictional physics.
 - **Clarified:** previous air-lane heights and 36 m segment length are prototype values only, not approved canon.
 - **Rule:** record proposals separately from canon; do not build additional geometry until the masterplan has been reviewed.
+## 2026-11-21 — Masterplan Study A
+- Added / STUDY: compared three habitat envelope options (elongated capsule, broad irregular enclosure, segmented industrial shell) and three three-street topology options.
+- Added / RECOMMENDATION: use the elongated envelope and staggered branches as the first study to validate, not as approved canon.
+- Added qualitative Main Street cross-section, vertical skyline bands, enclosure sightline tests, lighting test moods, and architectural character-zone guidance.
+- Added acceptance gate for a first playable segment. Explicitly forbids treating the study as authorization for new geometry.
