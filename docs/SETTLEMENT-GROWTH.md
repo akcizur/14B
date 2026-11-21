@@ -12,6 +12,14 @@ Vedlejší a paralelní ulice budou velmi omezené. Nevytvářet pravidelnou mř
 
 Loop/streaming technika může zajistit, aby se prostor hlavní ulice plynule opakoval nebo navazoval bez viditelného konce. Nesmí však změnit její vizuální charakter na kruhovou komunikaci. Hráč má vnímat dlouhou ulici lemovanou domy, nikoli kruhový okruh kolem centrálního areálu.
 
+## Vizuální a prostorová identita
+
+Architektura vychází z československých sídlišť a městské výstavby let **1950–1975**: panelové a prefabrikované domy, beton, omítka, cihlové či keramické obklady, pravidelné okenní moduly, lodžie, balkony a jednoduché modernistické objemy. Výsledek je alternativní retro-futurismus s umírněnou cyberpunkovou technologií. Nezaměňovat jej za generické neonové megaměsto.
+
+Město je částečně vertikální. Pozemní úroveň zůstává obytnou Main Street pro chodce a běžný provoz; nad ní existuje samostatně čitelná vzdušná vrstva pro hover/flycars. Letové koridory, výškové odstupy a přistávací/nástupní uzly se navrhují jako skutečná infrastruktura. Střešní plošiny se umisťují jen na vybrané vhodné budovy. Vzdušná doprava nesmí bezdůvodně křížit chodníky, kolidovat s okny nebo vést skrz interiéry.
+
+Technologie má působit jako pozdější modernizace sídliště: navigační značení, světelné panely, servisní kabeláž, antény, energetické rozvody a střídmé neonové akcenty. Historická hmota budov zůstává čitelná.
+
 ## Zásady
 
 1. Svět nezačíná rozptylem objektů, ale jednou ověřenou stavební jednotkou.
