@@ -70,13 +70,15 @@ Půdorys se odvozuje z vnitřní strany strukturálního cihlového tělesa po o
 - dvě paralelní ramena do tvaru U;
 - světlá šířka ramene 0,98 m;
 - mezera mezi rameny 0,12 m;
-- 10 stupňů na rameno, tedy 20 výškových kroků mezi podlažími;
-- běh ramene se přizpůsobuje změřené hloubce domu, nejvýše 2,05 m;
+- cílová výška jednoho stoupání je 0,16 m; výsledná výška se dopočítá na přesné dělení konkrétního podlaží;
+- počet stoupání se mění podle skutečné výšky podlaží, šířka jádra a délka ramene zůstávají stejné;
+- jedno rameno má 2,60 m běhu, nástupní prostor 0,70 m a mezipodesta 0,65 m;
+- první tři spojení podlaží mají 10 / 8 / 8 stoupání na rameno; výška stoupání vychází přibližně 16,5 / 15,4 / 15,7 cm a hloubka nášlapu 26 / 32,5 / 32,5 cm;
 - mezipodesta je součástí schodišťového otvoru;
 - otvor v horních deskách kopíruje jádro a mezipodestu;
 - po stranách schodiště jsou dvě průchozí místnosti, přístupné z podesty přes stavební dveřní otvory.
 
-Výška stoupání se počítá samostatně pro každé podlaží z jeho skutečné výšky. Nepoužívá se jedna konstantní hodnota pro celý dům.
+Výška stoupání se počítá samostatně pro každé podlaží z jeho skutečné výšky. Nepoužívá se jeden konstantní počet stupňů pro celý dům. Kontroluje se také vztah 2 × výška stoupání + hloubka nášlapu v komfortním rozmezí 0,56 až 0,65 m.
 
 Pohyb hráče používá stejný plán jako vykreslená geometrie. V otvoru horní desky je průchozí pouze rameno nebo mezipodesta; prázdný prostor mezi rameny není podlaha.
 
