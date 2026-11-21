@@ -204,6 +204,35 @@ test('U-stair flights create continuous half-floor and full-floor transitions', 
   assert.ok(Math.abs(nextStoreyLanding - (upper + plan.floorHeight / 2)) < 1e-5);
 });
 
+test('reference house adapts stair count to each real storey while keeping safe risers', () => {
+  const plan = deriveInteriorPlan({
+    minX: -4.66, maxX: 4.66,
+    minY: 0, maxY: 12.4,
+    minZ: -2.313, maxZ: 2.313
+  }, {
+    storeys: 4,
+    floorLevels: [0, 3.30, 5.77, 8.28, 11.95],
+    wallThickness: 0.18,
+    slabThickness: 0.16,
+    targetRiserHeight: 0.16
+  });
+
+  assert.equal(plan.stair.levels.length, 3, 'only real floor-to-floor stair flights are generated');
+  assert.deepEqual(plan.stair.levels.map((level) => level.risersPerFlight), [10, 8, 8]);
+  for (const level of plan.stair.levels) {
+    assert.ok(level.riserHeight >= 0.145 && level.riserHeight <= 0.18);
+    assert.ok(level.treadDepth >= 0.23 && level.treadDepth <= 0.33);
+    assert.ok(level.comfort >= 0.56 && level.comfort <= 0.65);
+    assert.equal(level.totalRisers, level.risersPerFlight * 2);
+  }
+
+  assert.equal(plan.stair.run, 2.6);
+  assert.equal(plan.stair.frontClearance, 0.7);
+  assert.equal(plan.stair.landingDepth, 0.65);
+  assert.ok(plan.stair.frontClearance + plan.stair.run +
+    plan.stair.landingDepth + plan.stair.rearClearance <= plan.innerDepth + 1e-6);
+});
+
 test('upper floor void blocks walking outside stair flights and landing', () => {
   const plan = deriveInteriorPlan({
     minX: -6, maxX: 6,
