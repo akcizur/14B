@@ -81,3 +81,14 @@ Před označením domu jako vizuálně schváleného proveď ruční průchod v 
 - **Vizuálně ověřeno:** konkrétní model a průchod byly ručně zkontrolovány v reálném WebGL prohlížeči.
 
 Tyto tři stavy se nesmějí zaměňovat.
+
+
+## Kontrola a oprava prototypu vzdušného koridoru (PR #9)
+
+Při kontrole implementace byly opraveny značky koridoru:
+- podélné značky nyní rozdělují délku segmentu rovnoměrně a zahrnují oba krajní body;
+- boční vodítka jsou společná pro celý koridor a neduplikují se pro každou výškovou hladinu;
+- jejich výška je konfigurována parametrem `guideY`;
+- přidána runtime-validace konfigurace vzdušné vrstvy (dvě výškově seřazené lanes, rozměry, značky a vodítka).
+
+Tato změna je zatím **neověřená CI**. Po commitech je nutné potvrdit workflow; ruční WebGL kontrola nebyla provedena.
