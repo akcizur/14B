@@ -45,7 +45,7 @@ export const WORLD_CONFIG = {
         wallThickness: 0.18,
         slabThickness: 0.16,
         stairFlightWidth: 0.98,
-        stairTreads: 10
+        targetRiserHeight: 0.16
       },
       collision: { type: 'bounds', scaleX: 0.94, scaleZ: 0.9, minWidth: 4, minDepth: 3.3 }
     }
