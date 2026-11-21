@@ -141,3 +141,8 @@ Vertikální nástupní a přistávací uzly se umisťují mimo hlavní pěší 
 - [ ] Až poté převést schválené rozměry do world config a runtime geometrie.
 
 Dokud tato brána neprojde, zůstává vzdušná doprava součástí dokumentovaného návrhu, nikoli hotovou herní funkcí.
+
+
+## Nové pevné omezení: habitat a přesně tři ulice (2026-11-21)
+
+District 14 je umělý habitat ve vesmíru, chráněný masivním prstencem inspirovaným Starship, s umělou atmosférou. Půdorys má pouze tři městské ulice: jednu výrazně delší Main Street a dvě podřízené vedlejší ulice. Další ulice nebo generovaná grid síť jsou mimo záměr. Tvar prstence, proporce, umístění tří ulic a jejich spojení nejsou zatím schválené. Než se rozšíří geometrie, je třeba vytvořit masterplan a prostorový řez. Podrobnosti a otevřené úkoly jsou v [DISTRICT-14-SPACE-HABITAT.md](./DISTRICT-14-SPACE-HABITAT.md).
