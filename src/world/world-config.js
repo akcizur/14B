@@ -111,6 +111,19 @@ export const WORLD_CONFIG = {
     ]
   },
 
+  airLayer: {
+    enabled: true,
+    corridor: { length: 36, width: 6, centerZ: 0, edgeMarkerZ: [-3, 3] },
+    lanes: [
+      { id: 'air-lower', centerY: 18, direction: 'forward', color: 0x58c9c4 },
+      { id: 'air-upper', centerY: 22, direction: 'reverse', color: 0xd49b59 }
+    ],
+    markerSpacing: 6,
+    markerLength: 2.8,
+    markerWidth: 0.16,
+    markerHeight: 0.08
+  },
+
   streetProps: [],
   trees: [],
   vehicles: [],
