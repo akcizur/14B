@@ -253,25 +253,25 @@ function addEntryWalkway(house) {
   const material = makeMaterial(0x9f9e95, 0.96);
   const entryRise = Math.max(0, house.doorPosition.y);
   const stepDepth = 0.32;
-  const stepCount = entryRise > 0.12 ? Math.max(1, Math.ceil(entryRise / 0.18)) : 0;
+  const stepCount = entryRise > 0.12 ? 2 : 0;
+  const riser = stepCount ? entryRise / stepCount : 0;
 
-  // Building Green's authored entrance sits on a raised plinth. The two
-  // compact risers bring the threshold down to the accessible garden path.
+  // Two equal, level risers connect the authored door sill to the public path.
+  // The higher step is nearest the door; the lower step meets the sidewalk path.
   for (let index = 0; index < stepCount; index += 1) {
-    const height = Math.min(0.18, entryRise - index * 0.18);
+    const bottom = index * riser;
     const step = new THREE.Mesh(
-      new THREE.BoxGeometry(config.width + 0.18, height, stepDepth),
+      new THREE.BoxGeometry(config.width + 0.18, riser, stepDepth),
       material
     );
     step.name = house.id + '-entry-step-' + (index + 1);
-    step.position.copy(house.doorPosition).addScaledVector(normal, 0.24 + index * 0.28);
-    step.position.y = index * 0.18 + height / 2;
+    step.position.copy(house.doorPosition).addScaledVector(normal, 0.52 - index * 0.28);
+    step.position.y = bottom + riser / 2;
     step.rotation.y = yaw;
     step.receiveShadow = true;
     world.add(step);
   }
-
-  const pathStart = house.doorPosition.clone().addScaledVector(normal, 0.24 + stepCount * 0.28);
+  const pathStart = house.doorPosition.clone().addScaledVector(normal, 0.80);
   const pathEnd = house.doorPosition.clone().addScaledVector(normal, distance);
   const pathLength = pathStart.distanceTo(pathEnd);
   if (pathLength > 0.1) {
