@@ -353,7 +353,7 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
   const entryX = door?.center ?? architecture.doorCenter ?? (inner.minX + inner.maxX) / 2;
   const stairMinX = clamp(entryX - stairWidth / 2, inner.minX + 0.16, inner.maxX - stairWidth - 0.16);
   const stairMaxX = stairMinX + stairWidth;
-  const stairRun = Math.min(2.35, innerDepth * 0.51);
+  const stairRun = Math.min(2.05, innerDepth * 0.48);
   // Leave a full-height landing between the front door and the first tread.
   const stairFrontZ = frontSide > 0 ? inner.maxZ - 1.05 : inner.minZ + 1.05;
   const stairBackZ = frontSide > 0 ? stairFrontZ - stairRun : stairFrontZ + stairRun;
