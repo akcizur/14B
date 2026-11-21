@@ -71,7 +71,7 @@ Půdorys se odvozuje z vnitřní strany strukturálního cihlového tělesa po o
 - světlá šířka ramene 0,98 m;
 - mezera mezi rameny 0,12 m;
 - 10 stupňů na rameno, tedy 20 výškových kroků mezi podlažími;
-- běh ramene se přizpůsobuje změřené hloubce domu, nejvýše 2,35 m;
+- běh ramene se přizpůsobuje změřené hloubce domu, nejvýše 2,05 m;
 - mezipodesta je součástí schodišťového otvoru;
 - otvor v horních deskách kopíruje jádro a mezipodestu;
 - po stranách schodiště jsou dvě průchozí místnosti, přístupné z podesty přes stavební dveřní otvory.
