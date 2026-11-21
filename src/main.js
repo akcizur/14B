@@ -265,7 +265,7 @@ function addEntryWalkway(house) {
       material
     );
     step.name = house.id + '-entry-step-' + (index + 1);
-    step.position.copy(house.doorPosition).addScaledVector(normal, 0.52 - index * 0.28);
+    step.position.copy(house.doorPosition).addScaledVector(normal, 0.48 - index * 0.32);
     step.position.y = bottom + riser / 2;
     step.rotation.y = yaw;
     step.receiveShadow = true;
@@ -281,7 +281,7 @@ function addEntryWalkway(house) {
     );
     path.name = house.id + '-entry-walkway';
     path.position.copy(pathStart).add(pathEnd).multiplyScalar(0.5);
-    path.position.y = config.thickness / 2;
+    path.position.y = sidewalk.y - config.thickness / 2;
     path.rotation.y = yaw;
     path.receiveShadow = true;
     world.add(path);
