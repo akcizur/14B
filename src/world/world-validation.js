@@ -169,7 +169,7 @@ export function validateWorldConfig(config, assetManifest) {
                !Number.isFinite(value) || (index > 0 && value - all[index - 1] < 2.25)))) {
           add(`House "${item.id}" has invalid metric floor levels.`);
         }
-        const targetRiserHeight = architecture.targetRiserHeight ?? 0.16;
+        const targetRiserHeight = architecture?.targetRiserHeight ?? 0.16;
         if (!Number.isFinite(targetRiserHeight) || targetRiserHeight < 0.14 || targetRiserHeight > 0.18) {
           add(`House "${item.id}" has an invalid target stair riser height (0.14–0.18 m).`);
         }
