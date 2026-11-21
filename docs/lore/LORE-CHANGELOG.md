@@ -26,3 +26,8 @@ This log records important setting decisions and revisions. Implementation commi
 - Added / RECOMMENDATION: use the elongated envelope and staggered branches as the first study to validate, not as approved canon.
 - Added qualitative Main Street cross-section, vertical skyline bands, enclosure sightline tests, lighting test moods, and architectural character-zone guidance.
 - Added acceptance gate for a first playable segment. Explicitly forbids treating the study as authorization for new geometry.
+## 2026-11-21 — Masterplan Study B
+- Added / STUDY: provisional scale scenarios for compact, medium, and large habitat envelopes; Main Street cross-section ranges; street branch relative lengths; qualitative skyline bands; and first playable slice scope.
+- Added / RECOMMENDATION: test a medium-scale blockout first (scenario values around 2.6 km habitat length, 1.5 km Main Street, 550 m usable width, 45 m façade-to-façade Main Street zone). These are scenario targets only, not approved dimensions.
+- Added / SCOPE PROPOSAL: first playable architecture test should be a contiguous 120–220 m street slice around one secondary-street intersection, rather than the whole street.
+- Explicitly kept gravity, habitat cross-section, air traffic heights, street final dimensions, and exact playable boundaries open.
