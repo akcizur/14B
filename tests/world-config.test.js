@@ -138,15 +138,19 @@ test('runtime validates the authored settlement hierarchy before creating scene 
 });
 
 
-test('air corridor prototype is explicitly data-driven and renders above the street axis', () => {
+test('air corridor visual guide is data-driven, bounded and evenly marked', () => {
   const air = WORLD_CONFIG.airLayer;
   assert.equal(air.enabled, true);
   assert.equal(air.corridor.length, 36);
   assert.equal(air.corridor.width, 6);
   assert.deepEqual(air.lanes.map((lane) => lane.centerY), [18, 22]);
   assert.deepEqual(air.corridor.edgeMarkerZ, [-3, 3]);
+  assert.equal(air.guideY, 20);
+  assert.equal(air.markerSpacing, 6);
   const main = fs.readFileSync(path.join(root, 'src', 'main.js'), 'utf8');
   assert.match(main, /function addAirLayerPrototype\(\)/);
   assert.match(main, /addAirLayerPrototype\(\);/);
-  assert.match(main, /air-lower|air-upper/);
+  assert.match(main, /air-corridor-edge-guide/);
+  assert.match(main, /Math\.ceil\(corridor\.length \/ config\.markerSpacing\)/);
+  assert.match(main, /corridor\.length \* index\) \/ count/);
 });
