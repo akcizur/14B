@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   buildBuildingInterior,
   deriveInteriorPlan,
@@ -62,6 +63,54 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
   root.updateMatrixWorld(true);
   return root;
 }
+
+test('single GLB mesh with material groups keeps door, glass and shell bounds separate', () => {
+  const parts = [];
+  const materials = [
+    new THREE.MeshStandardMaterial({ name: 'brick_shadeGreen' }),
+    new THREE.MeshStandardMaterial({ name: 'door_white' }),
+    new THREE.MeshStandardMaterial({ name: 'window_glass' })
+  ];
+  const addPart = (geometry, materialIndex) => {
+    geometry.clearGroups();
+    geometry.addGroup(0, geometry.index.count, materialIndex);
+    parts.push(geometry);
+  };
+
+  const shell = new THREE.BoxGeometry(12, 10.1, 9);
+  shell.translate(0, 5.05, 0);
+  addPart(shell, 0);
+
+  const door = new THREE.BoxGeometry(1.2, 2.1, 0.06);
+  door.translate(0, 1.05, 4.47);
+  addPart(door, 1);
+
+  const lowerPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
+  lowerPane.translate(-3, 3.75, 4.46);
+  addPart(lowerPane, 2);
+
+  const upperPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
+  upperPane.translate(-3, 4.33, 4.46);
+  addPart(upperPane, 2);
+
+  const geometry = mergeGeometries(parts, true);
+  assert.ok(geometry);
+  const root = new THREE.Group();
+  root.name = 'glb-style-single-mesh';
+  root.add(new THREE.Mesh(geometry, materials));
+  root.updateMatrixWorld(true);
+
+  const structure = measureStructuralBounds(root);
+  const [measuredDoor] = measureFacadeDoors(root, structure);
+  const windows = measureFacadeOpenings(root, structure, measuredDoor);
+  assert.ok(Math.abs((structure.maxX - structure.minX) - 12) < 1e-4);
+  assert.ok(Math.abs((structure.maxY - structure.minY) - 10.1) < 1e-4);
+  assert.ok(Math.abs(measuredDoor.width - 1.2) < 0.03);
+  assert.ok(Math.abs(measuredDoor.height - 2.1) < 0.03);
+  assert.equal(windows.length, 1);
+  assert.ok(Math.abs(windows[0].width - 1.4) < 0.03);
+  assert.ok(Math.abs(windows[0].height - 1.13) < 0.08);
+});
 
 test('building dimensions are measured in metres in the rotated model-local frame', () => {
   const shell = createShell({ width: 12, height: 10.1, depth: 9, scale: 1.25 });
