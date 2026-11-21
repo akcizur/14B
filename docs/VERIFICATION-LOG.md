@@ -92,3 +92,8 @@ Při kontrole implementace byly opraveny značky koridoru:
 - přidána runtime-validace konfigurace vzdušné vrstvy (dvě výškově seřazené lanes, rozměry, značky a vodítka).
 
 Tato změna je zatím **neověřená CI**. Po commitech je nutné potvrdit workflow; ruční WebGL kontrola nebyla provedena.
+
+
+### CI nalezená chyba a oprava konfigurace
+
+První CI po úpravě prototypu odhalilo, že runtime-validace vyžadovala `airLayer.guideY`, ale parametr nebyl uložen v `WORLD_CONFIG`. Doplněno `guideY: 20`. Tento stav se znovu ověřuje dalším CI během PR; předchozí run #75 selhal ve 2 testech kvůli chybějícímu nastavení.
