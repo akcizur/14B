@@ -108,11 +108,11 @@ První ulice je klidná obytná komunikace, nikoli nedokončená městská kři�
 | Prvek | Rozměr |
 |---|---:|
 | Vozovka | 6,0 m |
-| Chodník na každé straně | 1,6 m (šířka profilu 36 m podél ulice) |
+| Chodník na každé straně | hloubka 1,6 m, délka profilu 36 m |
 | Obruba | 0,20 m široká × 0,14 m vysoká, přesně navazuje na chodník |
 | Délka prvního uličního úseku | 36 m |
 | Šířka pěší přístupové cesty | 1,80 m |
-| Odsazení domu za chodníkem | přibližně 1,3 m |
+| Odsazení domu za chodníkem | přibližně 1,4 m |
 
 Ulice nemá středovou čáru, izolovaný přechod ani křižovatku, která nikam nepokračuje. Přechod se přidá až tam, kde bude napojená druhá ulice nebo doložený pěší uzel.
 
