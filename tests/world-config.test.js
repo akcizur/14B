@@ -77,6 +77,8 @@ test('enterable buildings define multi-storey structural architecture', () => {
 test('starter world contains only one reference house and the road corridor', () => {
   assert.equal(WORLD_CONFIG.buildings.length, 1);
   assert.equal(WORLD_CONFIG.buildings[0].id, 'house-001');
+  assert.equal(WORLD_CONFIG.buildings[0].height, 13.4);
+  assert.deepEqual(WORLD_CONFIG.buildings[0].architecture.floorLevels, [0, 3.30, 5.77, 8.28, 10.79]);
   assert.deepEqual(WORLD_CONFIG.streetProps, []);
   assert.deepEqual(WORLD_CONFIG.trees, []);
   assert.deepEqual(WORLD_CONFIG.vehicles, []);
@@ -84,10 +86,16 @@ test('starter world contains only one reference house and the road corridor', ()
   assert.ok(WORLD_CONFIG.street.road.size[0] > WORLD_CONFIG.street.road.size[1]);
   assert.ok(WORLD_CONFIG.street.sidewalk.width > 0);
   const spawnZ = WORLD_CONFIG.spawn.position[2];
-  assert.ok(Math.abs(spawnZ - WORLD_CONFIG.street.sidewalk.z) < WORLD_CONFIG.street.sidewalk.depth / 2 - 0.3,
-    'player must spawn inside the sidewalk rather than in a traffic lane');
+  assert.ok(Math.abs(Math.abs(spawnZ) - WORLD_CONFIG.street.sidewalk.z) < WORLD_CONFIG.street.sidewalk.depth / 2 - 0.3,
+    'player must spawn on the same-side sidewalk, not in a traffic lane');
+  assert.ok(spawnZ * WORLD_CONFIG.buildings[0].position[2] > 0,
+    'player spawn and reference house entrance must share the same street side');
   assert.ok(Math.abs(spawnZ) > WORLD_CONFIG.street.road.size[1] / 2,
     'player spawn must stay outside the road surface');
+  assert.equal(WORLD_CONFIG.street.crosswalks, undefined,
+    'a zebra crossing must not appear without a junction');
+  assert.equal(WORLD_CONFIG.street.laneMarkings, undefined,
+    'the calm local road must not have arbitrary lane dashes');
   assert.equal(WORLD_CONFIG.street.manhole, undefined);
 });
 
@@ -98,7 +106,7 @@ test('settlement hierarchy is unique and grows from district to rooms', () => {
   assert.ok(nodes.some((node) => node.type === 'street'));
   assert.ok(nodes.some((node) => node.type === 'parcel'));
   assert.ok(nodes.some((node) => node.type === 'building' && node.id === 'house-001'));
-  assert.equal(nodes.filter((node) => node.type === 'storey').length, 3);
+  assert.equal(nodes.filter((node) => node.type === 'storey').length, 4);
   assert.ok(nodes.some((node) => node.type === 'stairwell'));
   assert.ok(nodes.some((node) => node.type === 'room'));
 });
