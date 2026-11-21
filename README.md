@@ -1,6 +1,8 @@
 # DISTRICT 14
 
-District 14 is a Three.js + Vite first-person neighbourhood sandbox. The world is being rebuilt as a deliberately small, dimensionally consistent settlement rather than a crowded showcase.
+District 14 is a Three.js + Vite first-person neighbourhood sandbox being developed as a compact, dimensionally consistent artificial habitat in outer space. The setting is protected by a massive ring structure (working concept name: **Starship Ring**) and contains an artificial atmosphere.
+
+The urban layout is intentionally constrained to **exactly three streets**. One long, dominant Main Street defines the setting; two secondary streets provide limited connection and variety. The world should expand vertically and longitudinally rather than becoming a conventional street grid. The setting's Czechoslovak 1950–1975 architectural character is paired with restrained retro-futurist technology.
 
 ## Current playable slice
 
@@ -40,25 +42,23 @@ npm run preview
 | `E` | Enter / exit the house |
 | `Esc` | Pause / release mouse |
 
-## World growth model
-
-The editable hierarchy is intentionally explicit:
+## World hierarchy
 
 ```text
-District
-└── Street
-    └── Parcel
-        └── Building
-            ├── Stairwell
-            ├── Ground floor
-            │   └── Rooms
-            ├── First floor
-            │   └── Rooms
-            └── Second floor
-                └── Rooms
+District 14 Habitat
+└── Habitat / Protective Ring
+    └── Three-Street Urban Layout
+        ├── Main Street (dominant long axis)
+        ├── Street 02 (secondary)
+        └── Street 03 (secondary)
+            └── Parcels
+                └── Buildings
+                    ├── Stairwell
+                    ├── Storeys
+                    └── Rooms
 ```
 
-Future houses are added as new parcels along the existing street. Only after the street frontage, plot dimensions, building access and house scale are stable do we add further streets, junctions and blocks. The current scene is the scale reference for those additions.
+The street topology and ring geometry remain design tasks. Do not generate additional streets or treat a technical streaming loop as a visible circular road.
 
 ## Project layout
 
@@ -71,7 +71,7 @@ Future houses are added as new parcels along the existing street. Only after the
 - `public/models/`: local GLB asset library and manifest.
 - `tests/`: world, hierarchy, building geometry, stairs, GLB and collision regression tests.
 
-Start at the [documentation index](docs/README.md). The dimensional and construction specification is [Reference House & Street](docs/REFERENCE-HOUSE-AND-STREET.md); the system boundaries are in [World Architecture](docs/WORLD-ARCHITECTURE.md), and the staged expansion path is in [Settlement Growth](docs/SETTLEMENT-GROWTH.md).
+Documentation starts at [docs/README.md](docs/README.md), with the complete world lore in [docs/lore/](docs/lore/README.md).
 
 ## Scope
 
