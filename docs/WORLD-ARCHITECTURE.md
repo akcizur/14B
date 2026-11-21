@@ -13,6 +13,21 @@ Prostor není klasická pravoúhlá uliční síť. Paralelní ulice se nevytvá
 
 Svět může technicky používat prostorové navázání/loop pro zachování kontinuity, ale nesmí působit jako kruhová silnice nebo uzavřený blok. Z pohledu hráče jde o dlouhou obytnou ulici pokračující k horizontu. Interiéry a exteriéry zůstávají v jednom souřadnicovém prostoru bez přechodu na samostatnou scénu.
 
+## Vizuální identita: československé retro-futuristické sídliště
+
+Základní architektonický jazyk vychází z československé bytové a občanské výstavby přibližně z let **1950–1975**: raný a pozdní modernismus, panelové a prefabrikované domy, jednoduché kubické hmoty, pravidelný rastr oken, lodžie, balkony, keramické nebo cihlové obklady, betonové konstrukce a střídmá barevnost. Nejde o přesnou historickou rekonstrukci, ale o uvěřitelnou alternativní budoucnost vyrůstající z této stavební tradice.
+
+Cyberpunková vrstva je technologická, nikoli dekorativní přemíra neonů. Technologie působí jako postupné modernizace staršího sídliště: dodatečné světelné značení, veřejné terminály, kabelové a servisní trasy, dopravní signalizace, antény, energetická infrastruktura, navigační prvky a decentní barevné světelné akcenty. Beton, omítka, sklo, kov a běžné obytné detaily zůstávají dominantní.
+
+### Vertikální město a létající doprava
+
+District 14 je částečně vertikální město se dvěma propojenými vrstvami pohybu:
+
+- **Pozemní vrstva:** Main Street, chodníky, vstupy, parkování a pěší pohyb. Zde zůstává měřítko a charakter obytné ulice.
+- **Vzdušná vrstva:** hover/flycars, vyhrazené letové koridory nad úrovní běžného provozu, vybrané střešní nebo zvýšené nástupní a přistávací plochy a vertikální spojení mezi úrovněmi.
+
+Vzdušná doprava musí mít čitelnou výškovou hierarchii a bezpečné odstupy od fasád, oken, střech, chodníků a pěších zón. Létající auta nesmějí bez pravidel prolétat interiéry nebo těsně skrz obytné balkony. Přistávací místa jsou konkrétní architektonické a dopravní uzly, ne náhodné plošiny na každé střeše. Vertikální vrstva nesmí zničit čitelnou hlavní osu Main Street.
+
 ### Zásady Main Street
 
 - jedna dominantní průběžná ulice;
