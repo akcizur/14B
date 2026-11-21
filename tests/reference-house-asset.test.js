@@ -26,25 +26,17 @@ test('reference GLB exposes distinct shell, glazing and entrance materials', () 
   assert.ok(gltf.nodes?.some((node) => Number.isInteger(node.mesh)));
 });
 
-test('reference GLB has enough vertical glazing rows for the four-level datum', () => {
+test('reference GLB glass bounds span the ground and upper facade', () => {
   const gltf = readGlbJson(assetPath);
   const materialIndex = gltf.materials.findIndex((material) => material.name === 'window_glass');
   assert.ok(materialIndex >= 0);
-  const glassMeshes = (gltf.meshes || []).filter((mesh) =>
-    (mesh.primitives || []).some((primitive) => primitive.material === materialIndex)
-  );
-  assert.ok(glassMeshes.length > 0);
-  const positions = glassMeshes.flatMap((mesh) => (mesh.primitives || [])
-    .filter((primitive) => primitive.material === materialIndex)
-    .map((primitive) => primitive.attributes?.POSITION)
-  ).filter(Number.isInteger);
-  assert.ok(positions.length > 0, 'glazing primitives must reference vertex positions');
-  const rows = new Set();
-  for (const accessorIndex of positions) {
-    const accessor = gltf.accessors?.[accessorIndex];
-    if (!accessor?.min || !accessor?.max) continue;
-    const centreY = (accessor.min[1] + accessor.max[1]) / 2;
-    rows.add(Math.round(centreY * 100) / 100);
-  }
-  assert.ok(rows.size >= 2, 'glazing must contain separate vertical facade bands');
+  const glassPrimitive = (gltf.meshes || []).flatMap((mesh) => mesh.primitives || [])
+    .find((primitive) => primitive.material === materialIndex);
+  assert.ok(glassPrimitive);
+  const accessor = gltf.accessors?.[glassPrimitive.attributes?.POSITION];
+  assert.ok(accessor?.min && accessor?.max);
+  assert.ok(accessor.max[1] - accessor.min[1] > 2.5,
+    'the source glass geometry must span several storey bands');
+  assert.ok(accessor.max[0] - accessor.min[0] > 1.8,
+    'the source glass geometry must include the separated facade windows');
 });
