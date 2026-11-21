@@ -4,6 +4,14 @@
 **Základní princip:** nejprve přesný dům, potom jeho nejbližší okolí, teprve potom hierarchie ulic a bloků  
 **Režim:** pouze Free Play / Sandbox
 
+## Základní urbanistický koncept: Main Street
+
+District 14 je **single-main-street world**: jedna dlouhá obytná Main Street s řadami domů po obou stranách. Ulice se táhne k horizontu v obou směrech a je hlavní osou pohybu, orientace i rozšiřování světa. Nejde o síť městských bloků.
+
+Vedlejší a paralelní ulice budou velmi omezené. Nevytvářet pravidelnou mřížku, opakované paralelní komunikace ani další ulice jen proto, aby vznikly bloky. Vedlejší ulice lze přidat pouze tehdy, když mají jasnou funkci a jsou výslovně součástí návrhu. Pěší cesty, vjezdy, chodníky a vstupy do domů se evidují samostatně a nesmějí se zaměňovat za další ulice.
+
+Loop/streaming technika může zajistit, aby se prostor hlavní ulice plynule opakoval nebo navazoval bez viditelného konce. Nesmí však změnit její vizuální charakter na kruhovou komunikaci. Hráč má vnímat dlouhou ulici lemovanou domy, nikoli kruhový okruh kolem centrálního areálu.
+
 ## Zásady
 
 1. Svět nezačíná rozptylem objektů, ale jednou ověřenou stavební jednotkou.
