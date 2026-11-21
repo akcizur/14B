@@ -107,7 +107,30 @@ Vstup se měří z materiálu **door_white**. Střed, šířka, výška a práh 
 
 Zvýšený práh se připojuje dvěma schody stejné výšky k venkovní cestě. Pěší cesta má horní povrch ve stejné výšce jako chodník; její hrana se dotýká prvního stupně bez mezery. Vnitřní podlaha začíná v úrovni skutečného prahu. Nejde o fyzické otevírání dveřního křídla; vstup stále přepíná vnější a vnitřní geometrii.
 
-## 6. Main Street a parcela
+## 6. Main Street, vertikální vrstva a parcela
+
+První uliční úsek je zárodkem **Main Street**, jediné dominantní obytné osy District 14. Finální svět má být tvořen dlouhou ulicí pokračující k horizontu v obou směrech a řadami domů po obou stranách.
+
+### Architektonický jazyk
+
+Budovy vycházejí z československé architektury a sídlištní výstavby let **1950–1975**: panelové a prefabrikované konstrukce, betonové a omítané plochy, cihlové/keramické obklady, pravidelné okenní rastry, lodžie, balkony a střídmá modernistická geometrie. Cyberpunkové prvky jsou pozdější technologickou vrstvou, například navigační světla, informační panely, antény, kabelové trasy a decentní neonové akcenty. Nesmí zakrýt původní charakter domů.
+
+### Vertikální doprava
+
+Svět má dvě jasně odlišené, ale prostorově propojené vrstvy:
+
+- pozemní Main Street pro pěší, vstupy, parkování a pozemní dopravu;
+- vzdušnou úroveň pro hover/flycars, s definovanými letovými koridory a vybranými přistávacími nebo nástupními místy.
+
+Výšky koridorů, šířky průletů, ochranné odstupy od fasád a střech a místa vertikálního nástupu musí být explicitní world data. Žádný letový koridor se nesmí odvodit jen z vizuálního odhadu. Střešní přistávací plocha se přidá pouze na budovu, jejíž konstrukce a přístup to umožňují. Pěší zóny, okna a interiéry zůstávají chráněné před průletem vozidel.
+
+První uliční úsek má souvislou vozovku a chodníky po obou stranách. Domy se řadí podél obou uličních front, každý na vlastní parcele s vlastním vstupem a metrickým interiérem. Vedlejší ulice a paralelní komunikace budou velmi vzácné.
+
+Pokud bude pro technickou kontinuitu použito loop/streaming napojení, musí být skryté v geometrii a perspektivě. Hráč má vidět dlouhou obytnou ulici pokračující za horizont, nikoli kruhovou silnici nebo návratovou zatáčku.
+
+První ověřovaná ulice je klidná obytná komunikace, nikoli nedokončená městská křižovatka. Šířky jsou záměrně kompaktní:
+
+| Prvek | Rozměr |
 
 První uliční úsek je zárodkem **Main Street**, jediné dominantní obytné osy District 14. Finální svět má být tvořen dlouhou ulicí pokračující k horizontu v obou směrech a řadami domů po obou stranách. Aktuální krátký úsek je pouze první ověřovaný segment, nikoli hranice budoucí mapy.
 
