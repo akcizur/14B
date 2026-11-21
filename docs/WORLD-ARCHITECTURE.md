@@ -5,6 +5,24 @@
 **Autorovací rozsah:** jedna ulice, jedna parcela, jeden referenční dům  
 **Režim:** Free Play / Sandbox
 
+## Prostorový koncept: Main Street World
+
+District 14 je jeden souvislý svět soustředěný kolem jediné dominantní obytné komunikace **Main Street**. Hlavní ulice pokračuje v obou směrech až za horizont a tvoří hlavní orientační i dopravní osu celé hry. Po obou stranách ji lemuje souvislá nebo téměř souvislá řada obytných domů.
+
+Prostor není klasická pravoúhlá uliční síť. Paralelní ulice se nevytvářejí jako pravidelná síť a jejich počet musí zůstat velmi malý. Případná vedlejší komunikace je výjimkou, vzniká jen z konkrétního prostorového důvodu a nesmí konkurovat Main Street. Pěší průchody, vstupy, chodníky, parkování a malé předprostory nejsou automaticky dalšími ulicemi.
+
+Svět může technicky používat prostorové navázání/loop pro zachování kontinuity, ale nesmí působit jako kruhová silnice nebo uzavřený blok. Z pohledu hráče jde o dlouhou obytnou ulici pokračující k horizontu. Interiéry a exteriéry zůstávají v jednom souřadnicovém prostoru bez přechodu na samostatnou scénu.
+
+### Zásady Main Street
+
+- jedna dominantní průběžná ulice;
+- obytné řady domů po obou stranách hlavní komunikace;
+- chodníky po obou stranách, vstupy orientované podle skutečných fasád;
+- jen několik málo vedlejších ulic, nepravidelně a účelně umístěných;
+- žádné automatické generování paralelních ulic, pravoúhlých bloků ani rozsáhlé uliční sítě;
+- perspektiva zástavby a komunikace musí přirozeně pokračovat až k horizontu;
+- variace domů, odstupů, předprostorů a zeleně nesmí rozbít čitelnost hlavní uliční osy.
+
 ## Architektonická pravidla
 
 1. Vnější GLB model definuje fyzickou obálku a měřítko interiéru.
