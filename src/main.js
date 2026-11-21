@@ -188,6 +188,42 @@ function addAnimatedActor(key, height, position, path, speed, name, collision, a
   });
 }
 
+
+function addAirLayerPrototype() {
+  const config = WORLD_CONFIG.airLayer;
+  if (!config?.enabled) return;
+  const { corridor } = config;
+  const markerMaterial = (color) => new THREE.MeshStandardMaterial({
+    color, emissive: color, emissiveIntensity: 0.6, roughness: 0.55, metalness: 0.12,
+    transparent: true, opacity: 0.78
+  });
+  const neutral = makeMaterial(0x56615e, 0.8, 0.28);
+  for (const lane of config.lanes) {
+    const glow = markerMaterial(lane.color);
+    const count = Math.floor(corridor.length / config.markerSpacing);
+    for (let index = 0; index < count; index += 1) {
+      const x = -corridor.length / 2 + index * config.markerSpacing;
+      const marker = new THREE.Mesh(
+        new THREE.BoxGeometry(config.markerLength, config.markerHeight, config.markerWidth),
+        glow
+      );
+      marker.name = lane.id + '-visual-marker-' + index;
+      marker.position.set(x, lane.centerY, corridor.centerZ);
+      marker.receiveShadow = false;
+      world.add(marker);
+    }
+    for (const edgeZ of corridor.edgeMarkerZ) {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(corridor.length, 0.04, 0.05),
+        neutral
+      );
+      rail.name = lane.id + '-edge-guide-' + edgeZ;
+      rail.position.set(0, lane.centerY - 0.55, edgeZ);
+      world.add(rail);
+    }
+  }
+}
+
 function addStreetBase() {
   const grass = makeMaterial(0x78866f, 0.96);
   const asphalt = makeMaterial(0x44494a, 0.98);
@@ -845,6 +881,7 @@ async function initWorld() {
   assertValidWorldConfig(WORLD_CONFIG, manifest);
   assertValidWorldHierarchy(WORLD_CONFIG.hierarchy, WORLD_CONFIG.buildings);
   addStreetBase();
+  addAirLayerPrototype();
   buildBackdrop();
 
   const steps = [
