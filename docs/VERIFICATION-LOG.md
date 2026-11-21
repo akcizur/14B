@@ -1,3 +1,9 @@
+## Následná kontrola schodiště (PR #8)
+
+Při code review main bylo nalezeno neotestované chování: test výšky schodiště používal uniformní podlaží a neodhalil chybný přechod na horním rameni u neuniformních pater. Oprava nyní vybírá schodišťový segment podle výšky hráče a jeho skutečných výškových intervalů.
+
+Nový regresní test používá referenční hodnoty `[0, 3.30, 5.77, 8.28, 11.95]` a kontroluje návaznost horního ramene při výstupu, průběžný bod i cílovou podlahu pro všechny tři spoje. Tento commit ještě čeká na CI; předchozí výsledek 48/48 neověřoval tuto opravu.
+
 # District 14: ověření a vydání
 
 ## Referenční dům a první obytná ulice
