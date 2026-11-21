@@ -108,3 +108,36 @@ Nábytek, kuchyně, koupelny, svítidla, stromy, lavičky, auta a chodci se vrá
 | Doprava, NPC a mobiliář | záměrně odloženo |
 
 Každá etapa před dalším růstem vyžaduje: aktualizovaná data, validační testy, produkční build, ruční vizuální kontrolu a dokumentovaný rozdíl mezi hotovým a plánovaným.
+
+## Návrhový příčný řez Main Street
+
+Před rozšiřováním zástavby se používá jeden společný příčný řez pro pozemní ulici a vzdušnou dopravu. Jde o pracovní návrh; hodnoty označené provisional se musí ověřit proti skutečným modelům domů a vozidel.
+
+| Vrstva | Prvek | Rozměr / pravidlo |
+|---|---|---|
+| Pozemní | Vozovka | 6,0 m, stávající baseline |
+| Pozemní | Chodníky | 1,6 m na každé straně, stávající baseline |
+| Pozemní | Obruby | 0,20 × 0,14 m |
+| Pozemní | Pěší přístup | 1,80 m |
+| Pozemní | Parkování | lokální kapsy cca 2,2 m, provisional |
+| Vzdušná | Hlavní koridor | 6,0 m nad osou vozovky, provisional |
+| Vzdušná | Spodní hladina | střed +18,0 m od vozovky, provisional |
+| Vzdušná | Horní hladina | střed +22,0 m od vozovky, provisional |
+| Vzdušná | Provoz | protisměrné směry oddělené výškou |
+
+Referenční dům má vnější výšku přibližně 13,4 m. Pracovní spodní hladina +18 m proto vytváří předběžný prostor pro průlet nad střechou. Výsledek však závisí na skutečné výšce flycaru a na nejvyšších střešních prvcích. Hodnoty +18 m a +22 m nejsou definitivní, dokud neprojdou kontrolou kolizních obálek.
+
+Parkovací kapsy se vkládají jen do vybraných úseků a nesmějí souvisle zúžit pěší trasu. Vstupy, přístupové cesty a rozhledové prostory mají přednost před parkováním.
+
+Vertikální nástupní a přistávací uzly se umisťují mimo hlavní pěší proud a pouze na vybraných konstrukčně vhodných místech. Žádný letový koridor ani stoupací trasa nesmí vést skrz okna, balkony, lodžie nebo interiéry.
+
+### Brána před implementací
+
+- [ ] Vytvořit 1:1 příčný řez včetně obou uličních front.
+- [ ] Doplnit skutečnou kolizní obálku flycaru.
+- [ ] Změřit nejvyšší bod střechy, římsy, antény a balkonů.
+- [ ] Ověřit odstup vozidla od fasád a střech v celém koridoru.
+- [ ] Ověřit, že chodníky a vstupy zůstávají bez kolizí.
+- [ ] Až poté převést schválené rozměry do world config a runtime geometrie.
+
+Dokud tato brána neprojde, zůstává vzdušná doprava součástí dokumentovaného návrhu, nikoli hotovou herní funkcí.
