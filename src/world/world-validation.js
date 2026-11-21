@@ -170,6 +170,10 @@ export function validateWorldConfig(config, assetManifest) {
           add(`House "${item.id}" has invalid metric floor levels.`);
         }
       }
+        const targetRiserHeight = architecture?.targetRiserHeight ?? 0.16;
+        if (!Number.isFinite(targetRiserHeight) || targetRiserHeight < 0.14 || targetRiserHeight > 0.18) {
+          add(`House "${item.id}" has an invalid target stair riser height (0.14–0.18 m).`);
+        }
       if (collectionName === 'vehicles') {
         if (!Number.isFinite(item.speed) || item.speed <= 0 || ![-1, 1].includes(item.direction)) {
           add(`Vehicle "${item.id}" has invalid speed or direction.`);
