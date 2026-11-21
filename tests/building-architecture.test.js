@@ -204,6 +204,40 @@ test('U-stair flights create continuous half-floor and full-floor transitions', 
   assert.ok(Math.abs(nextStoreyLanding - (upper + plan.floorHeight / 2)) < 1e-5);
 });
 
+test('reference stairs remain continuous on uneven storeys when ascending and descending the upper flight', () => {
+  const plan = deriveInteriorPlan({
+    minX: -4.66, maxX: 4.66,
+    minY: 0, maxY: 12.4,
+    minZ: -2.313, maxZ: 2.313
+  }, {
+    storeys: 4,
+    floorLevels: [0, 3.30, 5.77, 8.28, 11.95],
+    wallThickness: 0.18,
+    slabThickness: 0.16,
+    targetRiserHeight: 0.16
+  });
+
+  for (let index = 0; index < plan.stair.levels.length; index += 1) {
+    const lowerBase = plan.baseY + plan.floorLevels[index];
+    const flightHeight = plan.floorHeights[index];
+    const midLanding = lowerBase + flightHeight / 2;
+    const upperFloor = lowerBase + flightHeight;
+    const lowerZ = plan.stair.frontSide > 0 ? plan.stair.minZ : plan.stair.maxZ;
+    const upperZ = plan.stair.frontSide > 0 ? plan.stair.maxZ : plan.stair.minZ;
+
+    assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, lowerZ, midLanding) - midLanding) < 1e-5,
+      'upper flight must start at its own mid-landing');
+    assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, upperZ, upperFloor) - upperFloor) < 1e-5,
+      'upper flight must finish at the connected floor, not jump into the next storey');
+    const threeQuarter = lowerBase + flightHeight * 0.75;
+    const threeQuarterZ = plan.stair.frontSide > 0
+      ? plan.stair.minZ + (plan.stair.maxZ - plan.stair.minZ) * 0.75
+      : plan.stair.maxZ - (plan.stair.maxZ - plan.stair.minZ) * 0.75;
+    assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, threeQuarterZ, threeQuarter) - threeQuarter) < 1e-5,
+      'intermediate step height must remain continuous during ascent');
+  }
+});
+
 test('reference house adapts stair count to each real storey while keeping safe risers', () => {
   const plan = deriveInteriorPlan({
     minX: -4.66, maxX: 4.66,
