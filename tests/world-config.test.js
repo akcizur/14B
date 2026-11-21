@@ -23,6 +23,19 @@ test('current District 14 world catalog validates against local GLB assets', () 
   assert.equal(assertValidWorldConfig(WORLD_CONFIG, manifest), true);
 });
 
+test('residential street curb, sidewalk and entrance path meet cleanly', () => {
+  const { curb, sidewalk, entryPath } = WORLD_CONFIG.street;
+  const curbOuter = curb.z + curb.depth / 2;
+  const sidewalkInner = sidewalk.z - sidewalk.depth / 2;
+  assert.ok(Math.abs(curbOuter - sidewalkInner) < 1e-6,
+    'outer curb edge must meet the inner sidewalk edge');
+  assert.equal(sidewalk.width, WORLD_CONFIG.street.road.size[0]);
+  assert.equal(curb.width, WORLD_CONFIG.street.road.size[0]);
+  assert.equal(entryPath.width, 1.8);
+  assert.ok(Math.abs(entryPath.thresholdDepth - 2 * 0.32) < 1e-6,
+    'two outside risers and the path start must share one measured threshold depth');
+});
+
 test('all world entities have stable unique IDs and explicit collision policies', () => {
   const ids = entities.map((entity) => entity.id);
   assert.equal(ids.length, new Set(ids).size);
