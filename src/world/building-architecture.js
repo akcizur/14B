@@ -354,16 +354,19 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
   const stairMinX = clamp(entryX - stairWidth / 2, inner.minX + 0.16, inner.maxX - stairWidth - 0.16);
   const stairMaxX = stairMinX + stairWidth;
   const stairRun = Math.min(2.35, innerDepth * 0.51);
-  const stairMaxZ = frontSide > 0 ? inner.maxZ - 0.16 : inner.minZ + 0.16;
-  const stairMinZ = frontSide > 0 ? stairMaxZ - stairRun : stairMaxZ + stairRun;
-  const landingDepth = Math.min(0.9, innerDepth - stairRun - 0.42);
+  // Leave a full-height landing between the front door and the first tread.
+  const stairFrontZ = frontSide > 0 ? inner.maxZ - 1.05 : inner.minZ + 1.05;
+  const stairBackZ = frontSide > 0 ? stairFrontZ - stairRun : stairFrontZ + stairRun;
+  const stairMinZ = Math.min(stairFrontZ, stairBackZ);
+  const stairMaxZ = Math.max(stairFrontZ, stairBackZ);
+  const landingDepth = Math.min(0.9, innerDepth - stairRun - 1.45);
   if (landingDepth < 0.68) throw new Error('Building depth cannot fit a safe stair landing.');
 
   const stairOpening = {
     minX: stairMinX - 0.08,
     maxX: stairMaxX + 0.08,
-    minZ: frontSide > 0 ? stairMinZ - landingDepth : stairMaxZ - 0.08,
-    maxZ: frontSide > 0 ? stairMaxZ + 0.08 : stairMinZ + landingDepth
+    minZ: frontSide > 0 ? stairMinZ - landingDepth : stairMinZ - 0.08,
+    maxZ: frontSide > 0 ? stairMaxZ + 0.08 : stairMaxZ + landingDepth
   };
   const averageFloorHeight = floorHeights.reduce((sum, value) => sum + value, 0) / storeys;
   const doorWidth = door?.width ?? architecture.doorWidth ?? 1.0;
@@ -675,8 +678,8 @@ function buildFloorPartitions(parent, plan, level, materials, colliders) {
   const inner = plan.inner;
   const doorHeight = Math.min(2.12, height - 0.12);
   const doorCenterZ = stair.frontSide > 0
-    ? stair.maxZ - 0.36
-    : stair.minZ + 0.36;
+    ? stair.maxZ + 0.42
+    : stair.minZ - 0.42;
 
   // Each half of the stair core opens directly to a clear, window-facing room.
   // The core is shared; these openings are apartment doors, not decorative cuts.
