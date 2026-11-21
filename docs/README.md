@@ -6,6 +6,7 @@ Project documentation is split into **setting/lore** and **technical implementat
 
 - [Lore index](lore/README.md): canon status, document map, and documentation policy.
 - [World Lore](lore/WORLD-LORE.md): premise, setting pillars, tone, spatial identity, and canon boundaries.
+- [Masterplan Concept 01](lore/MASTERPLAN-CONCEPT-01.md): habitat form study, recommended three-street topology, design gates, and open decisions. Proposal only.
 - [Starship Ring Habitat](lore/RING-HABITAT.md): the protective ring, visual presence, open design decisions, and constraints.
 - [Three Streets](lore/THREE-STREETS.md): exactly three streets, their hierarchy, and masterplan requirements.
 - [Artificial Atmosphere](lore/ARTIFICIAL-ATMOSPHERE.md): sky, haze, lighting, environmental depth, and open questions.
