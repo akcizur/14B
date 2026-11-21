@@ -188,6 +188,50 @@ function addAnimatedActor(key, height, position, path, speed, name, collision, a
   });
 }
 
+
+function addAirLayerPrototype() {
+  const config = WORLD_CONFIG.airLayer;
+  if (!config?.enabled) return;
+  const { corridor } = config;
+
+  // The prototype is a visual guide only. It does not define vehicle physics,
+  // pathfinding, collision or right-of-way.
+  const markerMaterial = (color) => new THREE.MeshStandardMaterial({
+    color, emissive: color, emissiveIntensity: 0.6, roughness: 0.55, metalness: 0.12,
+    transparent: true, opacity: 0.78
+  });
+  const neutral = makeMaterial(0x56615e, 0.8, 0.28);
+
+  // Two corridor boundaries are shared by both height-separated lanes.
+  for (const edgeZ of corridor.edgeMarkerZ) {
+    const rail = new THREE.Mesh(
+      new THREE.BoxGeometry(corridor.length, 0.04, 0.05),
+      neutral
+    );
+    rail.name = 'air-corridor-edge-guide-' + edgeZ;
+    rail.position.set(0, config.guideY, edgeZ);
+    rail.receiveShadow = false;
+    world.add(rail);
+  }
+
+  for (const lane of config.lanes) {
+    const glow = markerMaterial(lane.color);
+    // Include both ends, evenly spaced, instead of leaving a half-spacing gap.
+    const count = Math.ceil(corridor.length / config.markerSpacing);
+    for (let index = 0; index <= count; index += 1) {
+      const x = -corridor.length / 2 + (corridor.length * index) / count;
+      const marker = new THREE.Mesh(
+        new THREE.BoxGeometry(config.markerLength, config.markerHeight, config.markerWidth),
+        glow
+      );
+      marker.name = lane.id + '-visual-marker-' + index;
+      marker.position.set(x, lane.centerY, corridor.centerZ);
+      marker.receiveShadow = false;
+      world.add(marker);
+    }
+  }
+}
+
 function addStreetBase() {
   const grass = makeMaterial(0x78866f, 0.96);
   const asphalt = makeMaterial(0x44494a, 0.98);
@@ -845,6 +889,7 @@ async function initWorld() {
   assertValidWorldConfig(WORLD_CONFIG, manifest);
   assertValidWorldHierarchy(WORLD_CONFIG.hierarchy, WORLD_CONFIG.buildings);
   addStreetBase();
+  addAirLayerPrototype();
   buildBackdrop();
 
   const steps = [

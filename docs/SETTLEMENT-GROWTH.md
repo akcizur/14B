@@ -4,6 +4,22 @@
 **Základní princip:** nejprve přesný dům, potom jeho nejbližší okolí, teprve potom hierarchie ulic a bloků  
 **Režim:** pouze Free Play / Sandbox
 
+## Základní urbanistický koncept: Main Street
+
+District 14 je **single-main-street world**: jedna dlouhá obytná Main Street s řadami domů po obou stranách. Ulice se táhne k horizontu v obou směrech a je hlavní osou pohybu, orientace i rozšiřování světa. Nejde o síť městských bloků.
+
+Vedlejší a paralelní ulice budou velmi omezené. Nevytvářet pravidelnou mřížku, opakované paralelní komunikace ani další ulice jen proto, aby vznikly bloky. Vedlejší ulice lze přidat pouze tehdy, když mají jasnou funkci a jsou výslovně součástí návrhu. Pěší cesty, vjezdy, chodníky a vstupy do domů se evidují samostatně a nesmějí se zaměňovat za další ulice.
+
+Loop/streaming technika může zajistit, aby se prostor hlavní ulice plynule opakoval nebo navazoval bez viditelného konce. Nesmí však změnit její vizuální charakter na kruhovou komunikaci. Hráč má vnímat dlouhou ulici lemovanou domy, nikoli kruhový okruh kolem centrálního areálu.
+
+## Vizuální a prostorová identita
+
+Architektura vychází z československých sídlišť a městské výstavby let **1950–1975**: panelové a prefabrikované domy, beton, omítka, cihlové či keramické obklady, pravidelné okenní moduly, lodžie, balkony a jednoduché modernistické objemy. Výsledek je alternativní retro-futurismus s umírněnou cyberpunkovou technologií. Nezaměňovat jej za generické neonové megaměsto.
+
+Město je částečně vertikální. Pozemní úroveň zůstává obytnou Main Street pro chodce a běžný provoz; nad ní existuje samostatně čitelná vzdušná vrstva pro hover/flycars. Letové koridory, výškové odstupy a přistávací/nástupní uzly se navrhují jako skutečná infrastruktura. Střešní plošiny se umisťují jen na vybrané vhodné budovy. Vzdušná doprava nesmí bezdůvodně křížit chodníky, kolidovat s okny nebo vést skrz interiéry.
+
+Technologie má působit jako pozdější modernizace sídliště: navigační značení, světelné panely, servisní kabeláž, antény, energetické rozvody a střídmé neonové akcenty. Historická hmota budov zůstává čitelná.
+
 ## Zásady
 
 1. Svět nezačíná rozptylem objektů, ale jednou ověřenou stavební jednotkou.
@@ -92,3 +108,36 @@ Nábytek, kuchyně, koupelny, svítidla, stromy, lavičky, auta a chodci se vrá
 | Doprava, NPC a mobiliář | záměrně odloženo |
 
 Každá etapa před dalším růstem vyžaduje: aktualizovaná data, validační testy, produkční build, ruční vizuální kontrolu a dokumentovaný rozdíl mezi hotovým a plánovaným.
+
+## Návrhový příčný řez Main Street
+
+Před rozšiřováním zástavby se používá jeden společný příčný řez pro pozemní ulici a vzdušnou dopravu. Jde o pracovní návrh; hodnoty označené provisional se musí ověřit proti skutečným modelům domů a vozidel.
+
+| Vrstva | Prvek | Rozměr / pravidlo |
+|---|---|---|
+| Pozemní | Vozovka | 6,0 m, stávající baseline |
+| Pozemní | Chodníky | 1,6 m na každé straně, stávající baseline |
+| Pozemní | Obruby | 0,20 × 0,14 m |
+| Pozemní | Pěší přístup | 1,80 m |
+| Pozemní | Parkování | lokální kapsy cca 2,2 m, provisional |
+| Vzdušná | Hlavní koridor | 6,0 m nad osou vozovky, provisional |
+| Vzdušná | Spodní hladina | střed +18,0 m od vozovky, provisional |
+| Vzdušná | Horní hladina | střed +22,0 m od vozovky, provisional |
+| Vzdušná | Provoz | protisměrné směry oddělené výškou |
+
+Referenční dům má vnější výšku přibližně 13,4 m. Pracovní spodní hladina +18 m proto vytváří předběžný prostor pro průlet nad střechou. Výsledek však závisí na skutečné výšce flycaru a na nejvyšších střešních prvcích. Hodnoty +18 m a +22 m nejsou definitivní, dokud neprojdou kontrolou kolizních obálek.
+
+Parkovací kapsy se vkládají jen do vybraných úseků a nesmějí souvisle zúžit pěší trasu. Vstupy, přístupové cesty a rozhledové prostory mají přednost před parkováním.
+
+Vertikální nástupní a přistávací uzly se umisťují mimo hlavní pěší proud a pouze na vybraných konstrukčně vhodných místech. Žádný letový koridor ani stoupací trasa nesmí vést skrz okna, balkony, lodžie nebo interiéry.
+
+### Brána před implementací
+
+- [ ] Vytvořit 1:1 příčný řez včetně obou uličních front.
+- [ ] Doplnit skutečnou kolizní obálku flycaru.
+- [ ] Změřit nejvyšší bod střechy, římsy, antény a balkonů.
+- [ ] Ověřit odstup vozidla od fasád a střech v celém koridoru.
+- [ ] Ověřit, že chodníky a vstupy zůstávají bez kolizí.
+- [ ] Až poté převést schválené rozměry do world config a runtime geometrie.
+
+Dokud tato brána neprojde, zůstává vzdušná doprava součástí dokumentovaného návrhu, nikoli hotovou herní funkcí.

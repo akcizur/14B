@@ -72,6 +72,33 @@ export function validateWorldConfig(config, assetManifest) {
     if (config.street.manhole && (!checkVector3(config.street.manhole.position, 'Manhole position') ||
         !positive(config.street.manhole.radius))) add('Manhole configuration is invalid.');
   }
+  const airLayer = config.airLayer;
+  if (airLayer !== undefined) {
+    if (!airLayer || typeof airLayer !== 'object' || typeof airLayer.enabled !== 'boolean') {
+      add('Air layer configuration must define an enabled boolean.');
+    } else if (airLayer.enabled) {
+      const corridor = airLayer.corridor;
+      if (!corridor || !positive(corridor.length) || !positive(corridor.width) ||
+          !Number.isFinite(corridor.centerZ) || !Array.isArray(corridor.edgeMarkerZ) ||
+          corridor.edgeMarkerZ.length !== 2 || !corridor.edgeMarkerZ.every(Number.isFinite)) {
+        add('Air corridor dimensions and edge guides are invalid.');
+      }
+      if (!Array.isArray(airLayer.lanes) || airLayer.lanes.length !== 2 ||
+          !airLayer.lanes.every((lane) => lane && typeof lane.id === 'string' &&
+            Number.isFinite(lane.centerY) && typeof lane.direction === 'string' &&
+            Number.isFinite(lane.color))) {
+        add('Air layer must define exactly two valid directional lanes.');
+      } else if (airLayer.lanes[0].centerY >= airLayer.lanes[1].centerY) {
+        add('Air lanes must be ordered by increasing height.');
+      }
+      if (!positive(airLayer.markerSpacing) || !positive(airLayer.markerLength) ||
+          !positive(airLayer.markerWidth) || !positive(airLayer.markerHeight) ||
+          !Number.isFinite(airLayer.guideY)) {
+        add('Air corridor visual marker dimensions are invalid.');
+      }
+    }
+  }
+
   const entryPath = config.street?.entryPath;
   if (!entryPath || !positive(entryPath.width) || !positive(entryPath.thickness) ||
       !positive(entryPath.thresholdDepth)) {
