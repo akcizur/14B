@@ -35,7 +35,7 @@ Fasádní okna vznikají z oddělených trojúhelníkových komponent skleněný
 
 ## Metrický plán
 
-Budova ukládá explicitní architecture.floorLevels. Hodnoty jsou relativní k měřenému vstupnímu prahu a jsou přísně rostoucí. Výšky stupňů se počítají z konkrétního rozdílu mezi dvěma sousedními úrovněmi.
+Budova ukládá explicitní architecture.floorLevels. Hodnoty jsou relativní k měřenému vstupnímu prahu a jsou přísně rostoucí. Výšky stupňů se počítají z konkrétního rozdílu mezi dvěma sousedními úrovněmi. Počet stoupání na rameno se adaptuje podle cílové výšky 0,16 m, zatímco šířka jádra, délka běhu a mezipodesta zůstávají konstantní.
 
 Plán obsahuje:
 - konstrukční vnitřní obálku;
