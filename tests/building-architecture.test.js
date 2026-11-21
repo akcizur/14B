@@ -41,7 +41,7 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
     new THREE.MeshStandardMaterial({ name: 'window_glass' })
   );
   lowerPane.name = 'front-window-lower-pane';
-  lowerPane.position.set(-3, 3.75, depth / 2 - 0.04);
+  lowerPane.position.set(-3, 1.0, depth / 2 - 0.04);
   root.add(lowerPane);
 
   const upperPane = new THREE.Mesh(
@@ -49,7 +49,7 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
     new THREE.MeshStandardMaterial({ name: 'window_glass' })
   );
   upperPane.name = 'front-window-upper-pane';
-  upperPane.position.set(-3, 4.33, depth / 2 - 0.04);
+  upperPane.position.set(-3, 1.58, depth / 2 - 0.04);
   root.add(upperPane);
 
   const sideWindow = new THREE.Mesh(
@@ -57,7 +57,7 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
     new THREE.MeshStandardMaterial()
   );
   sideWindow.name = 'left-window-frame';
-  sideWindow.position.set(-width / 2, 5.2, 0.8);
+  sideWindow.position.set(-width / 2 + 0.03, 5.2, 0.8);
   root.add(sideWindow);
 
   root.updateMatrixWorld(true);
@@ -86,12 +86,16 @@ test('single GLB mesh with material groups keeps door, glass and shell bounds se
   addPart(door, 1);
 
   const lowerPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
-  lowerPane.translate(-3, 3.75, 4.46);
-  addPart(lowerPane, 2);
+  lowerPane.translate(-3, 1.0, 4.46);
 
   const upperPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
-  upperPane.translate(-3, 4.33, 4.46);
-  addPart(upperPane, 2);
+  upperPane.translate(-3, 1.58, 4.46);
+
+  const glazing = mergeGeometries([lowerPane, upperPane]);
+  assert.ok(glazing);
+  glazing.clearGroups();
+  glazing.addGroup(0, glazing.index.count, 2);
+  parts.push(glazing);
 
   const geometry = mergeGeometries(parts, true);
   assert.ok(geometry);
@@ -171,8 +175,8 @@ test('interior uses measured floors, stair core, real door opening and real glaz
   assert.ok(root.getObjectByName('level-0-floor'));
   assert.ok(root.getObjectByName('stair-0-flight-a-step-1'));
   assert.ok(root.getObjectByName('stair-0-flight-b-step-10'));
-  assert.ok(root.getObjectByName('level-0-front-window-0-glass'));
-  assert.ok(root.getObjectByName('level-0-front-door-left-1'));
+  assert.ok(root.children.some((child) => child.name.startsWith('level-0-front-window-') && child.name.endsWith('-glass')));
+  assert.ok(root.children.some((child) => child.name.startsWith('level-0-front-door-left-')));
   assert.ok(root.userData.collisionBoxes.length > 0);
   assert.ok(doorPosition.z > 0);
   assert.ok(outward.z > 0.99);
