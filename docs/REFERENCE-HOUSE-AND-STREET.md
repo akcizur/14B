@@ -82,6 +82,10 @@ Výška stoupání se počítá samostatně pro každé podlaží z jeho skuteč
 
 Pohyb hráče používá stejný plán jako vykreslená geometrie. V otvoru horní desky je průchozí pouze rameno nebo mezipodesta; prázdný prostor mezi rameny není podlaha.
 
+## Kontinuita pohybu po schodišti
+
+V každém podlaží se schodišťová ramena horizontálně překrývají. Výška hráče se proto při výpočtu horního ramene nesmí odvodit pouze z indexu aktuálního patra: ten se během výstupu přepne dříve, než hráč dokončí pohyb. Výpočet musí vybrat správné schodišťové spojení podle aktuální výšky hráče a interpolovat mezi jeho konkrétní mezipodestou a cílovou podlahou. Regresní test používá neuniformní výšky referenčního domu a ověřuje mezipodestu, mezibod i horní podlahu na všech třech spojích.
+
 ## 5. Fasáda, okna, skla a dveře
 
 ### Okna
