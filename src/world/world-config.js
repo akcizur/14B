@@ -118,6 +118,7 @@ export const WORLD_CONFIG = {
       { id: 'air-lower', centerY: 18, direction: 'forward', color: 0x58c9c4 },
       { id: 'air-upper', centerY: 22, direction: 'reverse', color: 0xd49b59 }
     ],
+    guideY: 20,
     markerSpacing: 6,
     markerLength: 2.8,
     markerWidth: 0.16,
