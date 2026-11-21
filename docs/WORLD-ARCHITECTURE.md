@@ -159,3 +159,10 @@ Návrh se nepovažuje za schválený, dokud:
 3. vertikální uzly nevedou přes obytné fasády a pěší zóny;
 4. pozemní profil zachová souvislý a bezpečný pěší průchod;
 5. bude provedena ruční vizuální kontrola ve WebGL.
+
+
+## Prototyp vzdušného koridoru ve scéně
+
+První vizuální prototyp zobrazuje dvě výškově oddělené vodicí linie a společné boční vodítko koridoru nad osou vozovky. Značky jsou rozmístěny rovnoměrně po celé délce segmentu včetně obou konců. Parametry pocházejí z `WORLD_CONFIG.airLayer`.
+
+**Prototyp není funkční dopravní systém.** Neobsahuje vozidla, fyziku, navigaci, kolizní obálku, vyhýbání ani řízení směru. Výška 18/22 m, šířka 6 m a vodítka jsou pracovní návrhové hodnoty. Před jejich potvrzením je potřeba vytvořit 1:1 řez s reálnou obálkou budovy, střešními prvky a modelem flycaru.
