@@ -39,6 +39,27 @@ function meshMaterialNames(mesh) {
   return materials.map((material) => material?.name || '').filter(Boolean);
 }
 
+function matchingMaterialSlots(mesh, pattern) {
+  const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+  if (Array.isArray(mesh.material)) {
+    return materials.map((material, materialIndex) => ({ material, materialIndex }))
+      .filter(({ material }) => pattern.test(material?.name || ''));
+  }
+  const materialName = materials[0]?.name || '';
+  return pattern.test(materialName) || pattern.test(mesh.name || '')
+    ? [{ material: materials[0], materialIndex: null }]
+    : [];
+}
+
+function materialGroupBounds(mesh, slot, inverseRigid) {
+  if (slot.materialIndex === null) return transformedMeshBounds(mesh, inverseRigid);
+  const result = new THREE.Box3();
+  for (const vertices of getTriangleComponents(mesh.geometry, slot.materialIndex)) {
+    result.union(localComponentBox(mesh, vertices, inverseRigid));
+  }
+  return result.isEmpty() ? null : result;
+}
+
 function measureBoundsFromMeshes(buildingRoot, predicate) {
   const { inverseRigid } = getBuildingFrame(buildingRoot);
   const bounds = new THREE.Box3();
@@ -71,18 +92,14 @@ export function measureStructuralBounds(buildingRoot) {
   const candidates = [];
   buildingRoot.traverse((object) => {
     if (!object.isMesh || !object.geometry) return;
-    const names = meshMaterialNames(object);
-    if (!names.some((name) => /(brick|wall|facade|masonry)/i.test(name))) return;
-    const box = transformedMeshBounds(object, inverseRigid);
-    if (!box) return;
-    const size = box.getSize(new THREE.Vector3());
-    const score = size.x * size.y;
-    candidates.push({ box, score, names });
+    for (const slot of matchingMaterialSlots(object, /(brick|wall|facade|masonry)/i)) {
+      const box = materialGroupBounds(object, slot, inverseRigid);
+      if (!box) continue;
+      const size = box.getSize(new THREE.Vector3());
+      candidates.push({ box, score: size.x * size.y });
+    }
   });
-  if (!candidates.length) {
-    const full = measureBuildingBounds(buildingRoot);
-    return full;
-  }
+  if (!candidates.length) return measureBuildingBounds(buildingRoot);
   candidates.sort((a, b) => b.score - a.score);
   const box = candidates[0].box;
   return {
@@ -93,44 +110,53 @@ export function measureStructuralBounds(buildingRoot) {
 }
 
 /** Split an indexed GLB mesh into disconnected surface islands. */
-function getTriangleComponents(geometry) {
+function getTriangleComponents(geometry, materialIndex = null) {
   const position = geometry.getAttribute('position');
   const index = geometry.index?.array;
-  const faceCount = index ? Math.floor(index.length / 3) : Math.floor(position.count / 3);
-  const vertexFaces = new Map();
-  const faceVertices = new Array(faceCount);
-
-  for (let face = 0; face < faceCount; face += 1) {
-    const ids = index
-      ? [index[face * 3], index[face * 3 + 1], index[face * 3 + 2]]
-      : [face * 3, face * 3 + 1, face * 3 + 2];
-    faceVertices[face] = ids;
-    for (const id of ids) {
-      if (!vertexFaces.has(id)) vertexFaces.set(id, []);
-      vertexFaces.get(id).push(face);
-    }
-  }
-
-  const visited = new Uint8Array(faceCount);
+  const totalElements = index ? index.length : position.count;
+  const ranges = materialIndex === null
+    ? [{ start: 0, count: totalElements }]
+    : geometry.groups.filter((group) => group.materialIndex === materialIndex);
   const components = [];
-  for (let face = 0; face < faceCount; face += 1) {
-    if (visited[face]) continue;
-    const stack = [face];
-    const vertices = new Set();
-    visited[face] = 1;
-    while (stack.length) {
-      const current = stack.pop();
-      for (const id of faceVertices[current]) {
-        vertices.add(id);
-        for (const adjacent of vertexFaces.get(id) || []) {
-          if (!visited[adjacent]) {
-            visited[adjacent] = 1;
-            stack.push(adjacent);
+
+  for (const range of ranges) {
+    const start = Math.max(0, Math.floor(range.start / 3));
+    const faceCount = Math.floor(range.count / 3);
+    const vertexFaces = new Map();
+    const faceVertices = new Array(faceCount);
+
+    for (let localFace = 0; localFace < faceCount; localFace += 1) {
+      const cursor = range.start + localFace * 3;
+      const ids = index
+        ? [index[cursor], index[cursor + 1], index[cursor + 2]]
+        : [cursor, cursor + 1, cursor + 2];
+      faceVertices[localFace] = ids;
+      for (const id of ids) {
+        if (!vertexFaces.has(id)) vertexFaces.set(id, []);
+        vertexFaces.get(id).push(localFace);
+      }
+    }
+
+    const visited = new Uint8Array(faceCount);
+    for (let face = 0; face < faceCount; face += 1) {
+      if (visited[face]) continue;
+      const stack = [face];
+      const vertices = new Set();
+      visited[face] = 1;
+      while (stack.length) {
+        const current = stack.pop();
+        for (const id of faceVertices[current]) {
+          vertices.add(id);
+          for (const adjacent of vertexFaces.get(id) || []) {
+            if (!visited[adjacent]) {
+              visited[adjacent] = 1;
+              stack.push(adjacent);
+            }
           }
         }
       }
+      components.push([...vertices]);
     }
-    components.push([...vertices]);
   }
   return components;
 }
@@ -167,14 +193,16 @@ export function measureFacadeDoors(buildingRoot, structure = measureStructuralBo
   const { inverseRigid } = getBuildingFrame(buildingRoot);
   const candidates = [];
   buildingRoot.traverse((object) => {
-    if (!object.isMesh || !object.geometry || !materialMatches(object, /door/i)) return;
-    const box = transformedMeshBounds(object, inverseRigid);
-    if (!box) return;
-    const size = box.getSize(new THREE.Vector3());
-    if (size.y < 1.2 || Math.max(size.x, size.z) < 0.45) return;
-    const facade = nearestFacadeSide(box, structure);
-    if (facade.distance > 0.5) return;
-    candidates.push({ box, facade, area: size.x * size.y });
+    if (!object.isMesh || !object.geometry) return;
+    for (const slot of matchingMaterialSlots(object, /door/i)) {
+      const box = materialGroupBounds(object, slot, inverseRigid);
+      if (!box) continue;
+      const size = box.getSize(new THREE.Vector3());
+      if (size.y < 0.45 || Math.max(size.x, size.z) < 0.2) continue;
+      const facade = nearestFacadeSide(box, structure);
+      if (facade.distance > 0.5) continue;
+      candidates.push({ box, facade, area: size.x * size.y });
+    }
   });
   candidates.sort((a, b) => b.area - a.area);
   return candidates.map(({ box, facade }) => {
@@ -206,33 +234,34 @@ export function measureFacadeOpenings(buildingRoot, structure = measureStructura
   const candidates = [];
   buildingRoot.traverse((object) => {
     if (!object.isMesh || !object.geometry) return;
-    const names = meshMaterialNames(object);
-    const hasDedicatedGlass = names.some((name) => /(window.?glass|glazing)/i.test(name));
-    const namedGlazing = /(window.?glass|glazing)/i.test(object.name || '');
-    const unnamedTestFrame = names.length === 0 && /window/i.test(object.name || '');
-    if (!hasDedicatedGlass && !namedGlazing && !unnamedTestFrame) return;
+    let slots = matchingMaterialSlots(object, /(window.?glass|glazing)/i);
+    if (!slots.length && meshMaterialNames(object).length === 0 && /window/i.test(object.name || '')) {
+      slots = [{ material: object.material, materialIndex: null }];
+    }
 
-    for (const vertexIds of getTriangleComponents(object.geometry)) {
-      const box = localComponentBox(object, vertexIds, inverseRigid);
-      const size = box.getSize(new THREE.Vector3());
-      if (size.y < 0.12 || Math.max(size.x, size.z) < 0.12) continue;
-      const facade = nearestFacadeSide(box, structure);
-      if (facade.distance > 0.42) continue;
+    for (const slot of slots) {
+      for (const vertexIds of getTriangleComponents(object.geometry, slot.materialIndex)) {
+        const box = localComponentBox(object, vertexIds, inverseRigid);
+        const size = box.getSize(new THREE.Vector3());
+        if (size.y < 0.12 || Math.max(size.x, size.z) < 0.12) continue;
+        const facade = nearestFacadeSide(box, structure);
+        if (facade.distance > 0.42) continue;
 
-      // Tiny glass panes which belong to the entrance door are not windows.
-      if (door && box.min.x < door.maxX - 0.02 && box.max.x > door.minX + 0.02 &&
-          box.min.y < door.maxY - 0.02 && box.max.y > door.minY + 0.02) continue;
+        // Tiny panes mounted within the entrance leaf are not facade windows.
+        if (door && box.min.x < door.maxX - 0.02 && box.max.x > door.minX + 0.02 &&
+            box.min.y < door.maxY - 0.02 && box.max.y > door.minY + 0.02) continue;
 
-      const center = box.getCenter(new THREE.Vector3());
-      candidates.push({
-        side: facade.side,
-        centerAxis: facade.side === 'front' || facade.side === 'back' ? center.x : center.z,
-        plane: facade.side === 'front' || facade.side === 'back' ? center.z : center.x,
-        minU: facade.side === 'front' || facade.side === 'back' ? box.min.x : box.min.z,
-        maxU: facade.side === 'front' || facade.side === 'back' ? box.max.x : box.max.z,
-        minY: box.min.y,
-        maxY: box.max.y
-      });
+        const center = box.getCenter(new THREE.Vector3());
+        candidates.push({
+          side: facade.side,
+          centerAxis: facade.side === 'front' || facade.side === 'back' ? center.x : center.z,
+          plane: facade.side === 'front' || facade.side === 'back' ? center.z : center.x,
+          minU: facade.side === 'front' || facade.side === 'back' ? box.min.x : box.min.z,
+          maxU: facade.side === 'front' || facade.side === 'back' ? box.max.x : box.max.z,
+          minY: box.min.y,
+          maxY: box.max.y
+        });
+      }
     }
   });
 
