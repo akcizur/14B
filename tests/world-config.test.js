@@ -92,6 +92,8 @@ test('starter world contains only one reference house and the road corridor', ()
   assert.equal(WORLD_CONFIG.buildings[0].id, 'house-001');
   assert.equal(WORLD_CONFIG.buildings[0].height, 13.4);
   assert.deepEqual(WORLD_CONFIG.buildings[0].architecture.floorLevels, [0, 3.30, 5.77, 8.28, 11.95]);
+  assert.equal(WORLD_CONFIG.buildings[0].architecture.targetRiserHeight, 0.16);
+  assert.equal(WORLD_CONFIG.buildings[0].architecture.stairTreads, undefined);
   assert.deepEqual(WORLD_CONFIG.streetProps, []);
   assert.deepEqual(WORLD_CONFIG.trees, []);
   assert.deepEqual(WORLD_CONFIG.vehicles, []);
