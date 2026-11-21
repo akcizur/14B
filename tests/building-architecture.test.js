@@ -229,11 +229,11 @@ test('reference stairs remain continuous on uneven storeys when ascending and de
       'upper flight must start at its own mid-landing');
     assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, upperZ, upperFloor) - upperFloor) < 1e-5,
       'upper flight must finish at the connected floor, not jump into the next storey');
-    const threeQuarter = lowerBase + flightHeight * 0.75;
-    const threeQuarterZ = plan.stair.frontSide > 0
-      ? plan.stair.minZ + (plan.stair.maxZ - plan.stair.minZ) * 0.75
-      : plan.stair.maxZ - (plan.stair.maxZ - plan.stair.minZ) * 0.75;
-    assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, threeQuarterZ, threeQuarter) - threeQuarter) < 1e-5,
+    const upperFlightMidpoint = lowerBase + flightHeight * 0.75;
+    const halfwayZ = plan.stair.frontSide > 0
+      ? plan.stair.minZ + (plan.stair.maxZ - plan.stair.minZ) * 0.5
+      : plan.stair.maxZ - (plan.stair.maxZ - plan.stair.minZ) * 0.5;
+    assert.ok(Math.abs(getInteriorWalkHeight(plan, plan.stair.laneTwoX, halfwayZ, upperFlightMidpoint) - upperFlightMidpoint) < 1e-5,
       'intermediate step height must remain continuous during ascent');
   }
 });
