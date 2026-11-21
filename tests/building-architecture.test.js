@@ -33,7 +33,7 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
     new THREE.MeshStandardMaterial({ name: 'door_white' })
   );
   door.name = 'entrance-door';
-  door.position.set(0, 1.05, depth / 2 - 0.01);
+  door.position.set(0, 1.05, depth / 2 - 0.03);
   root.add(door);
 
   const lowerPane = new THREE.Mesh(
