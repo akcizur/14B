@@ -2,7 +2,7 @@
 
 Při code review main bylo nalezeno neotestované chování: test výšky schodiště používal uniformní podlaží a neodhalil chybný přechod na horním rameni u neuniformních pater. Oprava nyní vybírá schodišťový segment podle výšky hráče a jeho skutečných výškových intervalů.
 
-Nový regresní test používá referenční hodnoty `[0, 3.30, 5.77, 8.28, 11.95]` a kontroluje návaznost horního ramene při výstupu, průběžný bod i cílovou podlahu pro všechny tři spoje. Tento commit ještě čeká na CI; předchozí výsledek 48/48 neověřoval tuto opravu.
+Nový regresní test používá referenční hodnoty `[0, 3.30, 5.77, 8.28, 11.95]` a kontroluje návaznost horního ramene při výstupu, průběžný bod i cílovou podlahu pro všechny tři spoje. CI této opravy je úspěšné: [run #63](https://github.com/akcizur/14B/actions/runs/44845630596) potvrzuje **49 testů, 49 úspěšných, 0 selhání**, produkční Vite build i Pages artefakt. Vizuální schválení v prohlížeči stále není provedeno.
 
 # District 14: ověření a vydání
 
