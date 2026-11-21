@@ -41,7 +41,7 @@ export const WORLD_CONFIG = {
         storeys: 4,
         // Calibrated to the four visible facade bands in building-green.glb.
         // Level zero is the actual door threshold, not an assumed ground datum.
-        floorLevels: [0, 3.30, 5.77, 8.28, 10.79],
+        floorLevels: [0, 3.30, 5.77, 8.28, 11.95],
         wallThickness: 0.18,
         slabThickness: 0.16,
         stairFlightWidth: 0.98,
