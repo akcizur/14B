@@ -459,23 +459,24 @@ export function getInteriorWalkHeight(plan, x, z, currentFeetY = plan.baseY) {
     const t = clamp((stair.maxZ - z) / run, 0, 1);
     return floorBase + t * floorHeight * 0.5;
   }
-  if (stair.frontSide > 0 && inLaneTwo || stair.frontSide < 0 && inLaneTwo) {
-    // Flight B can be queried while the player is still ascending from the
-    // half-landing OR after floor detection has switched to the upper storey.
-    // Keep its height anchored to the same physical flight in both cases.
+  if (inLaneTwo) {
+    // The two stair flights share the same horizontal footprint on every
+    // storey. Resolve which vertical flight the player is actually on from
+    // their feet height, rather than assuming floor detection alone.
     const t = stair.frontSide > 0
       ? clamp((z - stair.minZ) / run, 0, 1)
       : clamp((stair.maxZ - z) / run, 0, 1);
-    const upperFloorIndex = level;
-    const lowerFloorIndex = Math.max(0, upperFloorIndex - 1);
-    const flightHeight = plan.floorHeights[lowerFloorIndex];
-    const upperBase = plan.baseY + plan.floorLevels[upperFloorIndex];
-    const lowerBase = plan.baseY + plan.floorLevels[lowerFloorIndex];
-    const hasSwitchedToUpperFloor = level > 0 &&
-      currentFeetY >= upperBase - 0.04;
-    if (hasSwitchedToUpperFloor) {
-      return upperBase - flightHeight * 0.5 * (1 - t);
+    let stairIndex = level;
+    if (level > 0) {
+      const levelFloor = plan.baseY + plan.floorLevels[level];
+      const nextHalfLanding = level < stair.levels.length
+        ? levelFloor + plan.floorHeights[level] * 0.5
+        : Infinity;
+      if (currentFeetY < nextHalfLanding - 0.05) stairIndex = level - 1;
     }
+    stairIndex = clamp(stairIndex, 0, stair.levels.length - 1);
+    const lowerBase = plan.baseY + plan.floorLevels[stairIndex];
+    const flightHeight = plan.floorHeights[stairIndex];
     return lowerBase + flightHeight * (0.5 + t * 0.5);
   }
   if (stair.frontSide < 0 && inLaneOne) {
