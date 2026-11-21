@@ -193,16 +193,33 @@ function addAirLayerPrototype() {
   const config = WORLD_CONFIG.airLayer;
   if (!config?.enabled) return;
   const { corridor } = config;
+
+  // The prototype is a visual guide only. It does not define vehicle physics,
+  // pathfinding, collision or right-of-way.
   const markerMaterial = (color) => new THREE.MeshStandardMaterial({
     color, emissive: color, emissiveIntensity: 0.6, roughness: 0.55, metalness: 0.12,
     transparent: true, opacity: 0.78
   });
   const neutral = makeMaterial(0x56615e, 0.8, 0.28);
+
+  // Two corridor boundaries are shared by both height-separated lanes.
+  for (const edgeZ of corridor.edgeMarkerZ) {
+    const rail = new THREE.Mesh(
+      new THREE.BoxGeometry(corridor.length, 0.04, 0.05),
+      neutral
+    );
+    rail.name = 'air-corridor-edge-guide-' + edgeZ;
+    rail.position.set(0, config.guideY, edgeZ);
+    rail.receiveShadow = false;
+    world.add(rail);
+  }
+
   for (const lane of config.lanes) {
     const glow = markerMaterial(lane.color);
-    const count = Math.floor(corridor.length / config.markerSpacing);
-    for (let index = 0; index < count; index += 1) {
-      const x = -corridor.length / 2 + index * config.markerSpacing;
+    // Include both ends, evenly spaced, instead of leaving a half-spacing gap.
+    const count = Math.ceil(corridor.length / config.markerSpacing);
+    for (let index = 0; index <= count; index += 1) {
+      const x = -corridor.length / 2 + (corridor.length * index) / count;
       const marker = new THREE.Mesh(
         new THREE.BoxGeometry(config.markerLength, config.markerHeight, config.markerWidth),
         glow
@@ -211,15 +228,6 @@ function addAirLayerPrototype() {
       marker.position.set(x, lane.centerY, corridor.centerZ);
       marker.receiveShadow = false;
       world.add(marker);
-    }
-    for (const edgeZ of corridor.edgeMarkerZ) {
-      const rail = new THREE.Mesh(
-        new THREE.BoxGeometry(corridor.length, 0.04, 0.05),
-        neutral
-      );
-      rail.name = lane.id + '-edge-guide-' + edgeZ;
-      rail.position.set(0, lane.centerY - 0.55, edgeZ);
-      world.add(rail);
     }
   }
 }
