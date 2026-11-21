@@ -1,12 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   buildBuildingInterior,
   deriveInteriorPlan,
   getInteriorWalkHeight,
   isInteriorPositionWalkable,
   measureBuildingBounds,
+  measureStructuralBounds,
+  measureFacadeDoors,
   measureFacadeOpenings
 } from '../src/world/building-architecture.js';
 
@@ -16,15 +19,102 @@ function createShell({ width = 12, height = 10.1, depth = 9, scale = 1, rotation
   root.position.set(7, 0, -4);
   root.rotation.y = rotation;
   root.scale.setScalar(scale);
+
   const shell = new THREE.Mesh(
     new THREE.BoxGeometry(width, height, depth),
-    new THREE.MeshStandardMaterial()
+    new THREE.MeshStandardMaterial({ name: 'brick_wall' })
   );
+  shell.name = 'main-building-wall';
   shell.position.y = height / 2;
   root.add(shell);
+
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(1.2, 2.1, 0.06),
+    new THREE.MeshStandardMaterial({ name: 'door_white' })
+  );
+  door.name = 'entrance-door';
+  door.position.set(0, 1.05, depth / 2 - 0.03);
+  root.add(door);
+
+  const lowerPane = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.55, 0.04),
+    new THREE.MeshStandardMaterial({ name: 'window_glass' })
+  );
+  lowerPane.name = 'front-window-lower-pane';
+  lowerPane.position.set(-3, 1.0, depth / 2 - 0.04);
+  root.add(lowerPane);
+
+  const upperPane = new THREE.Mesh(
+    new THREE.BoxGeometry(1.4, 0.55, 0.04),
+    new THREE.MeshStandardMaterial({ name: 'window_glass' })
+  );
+  upperPane.name = 'front-window-upper-pane';
+  upperPane.position.set(-3, 1.58, depth / 2 - 0.04);
+  root.add(upperPane);
+
+  const sideWindow = new THREE.Mesh(
+    new THREE.BoxGeometry(0.06, 1.2, 1.35),
+    new THREE.MeshStandardMaterial()
+  );
+  sideWindow.name = 'left-window-frame';
+  sideWindow.position.set(-width / 2 + 0.03, 5.2, 0.8);
+  root.add(sideWindow);
+
   root.updateMatrixWorld(true);
   return root;
 }
+
+test('single GLB mesh with material groups keeps door, glass and shell bounds separate', () => {
+  const parts = [];
+  const materials = [
+    new THREE.MeshStandardMaterial({ name: 'brick_shadeGreen' }),
+    new THREE.MeshStandardMaterial({ name: 'door_white' }),
+    new THREE.MeshStandardMaterial({ name: 'window_glass' })
+  ];
+  const addPart = (geometry, materialIndex) => {
+    geometry.clearGroups();
+    geometry.addGroup(0, geometry.index.count, materialIndex);
+    parts.push(geometry);
+  };
+
+  const shell = new THREE.BoxGeometry(12, 10.1, 9);
+  shell.translate(0, 5.05, 0);
+  addPart(shell, 0);
+
+  const door = new THREE.BoxGeometry(1.2, 2.1, 0.06);
+  door.translate(0, 1.05, 4.47);
+  addPart(door, 1);
+
+  const lowerPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
+  lowerPane.translate(-3, 1.0, 4.46);
+
+  const upperPane = new THREE.BoxGeometry(1.4, 0.55, 0.04);
+  upperPane.translate(-3, 1.58, 4.46);
+
+  const glazing = mergeGeometries([lowerPane, upperPane]);
+  assert.ok(glazing);
+  glazing.clearGroups();
+  glazing.addGroup(0, glazing.index.count, 2);
+  parts.push(glazing);
+
+  const geometry = mergeGeometries(parts, true);
+  assert.ok(geometry);
+  const root = new THREE.Group();
+  root.name = 'glb-style-single-mesh';
+  root.add(new THREE.Mesh(geometry, materials));
+  root.updateMatrixWorld(true);
+
+  const structure = measureStructuralBounds(root);
+  const [measuredDoor] = measureFacadeDoors(root, structure);
+  const windows = measureFacadeOpenings(root, structure, measuredDoor);
+  assert.ok(Math.abs((structure.maxX - structure.minX) - 12) < 1e-4);
+  assert.ok(Math.abs((structure.maxY - structure.minY) - 10.1) < 1e-4);
+  assert.ok(Math.abs(measuredDoor.width - 1.2) < 0.03);
+  assert.ok(Math.abs(measuredDoor.height - 2.1) < 0.03);
+  assert.equal(windows.length, 1);
+  assert.ok(Math.abs(windows[0].width - 1.4) < 0.03);
+  assert.ok(Math.abs(windows[0].height - 1.13) < 0.08);
+});
 
 test('building dimensions are measured in metres in the rotated model-local frame', () => {
   const shell = createShell({ width: 12, height: 10.1, depth: 9, scale: 1.25 });
@@ -34,88 +124,126 @@ test('building dimensions are measured in metres in the rotated model-local fram
   assert.ok(Math.abs((bounds.maxY - bounds.minY) - 12.625) < 1e-4);
 });
 
-test('interior floorplates and roof are derived from the measured exterior shell', () => {
-  const shell = createShell();
-  const { root, plan } = buildBuildingInterior(shell, {
+test('structural footprint ignores isolated roof trim and is taken from the wall body', () => {
+  const shell = createShell({ rotation: 0 });
+  const trim = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 1.5, 0.2),
+    new THREE.MeshStandardMaterial({ name: 'sandstone_trim' })
+  );
+  trim.position.set(0, 10.6, 4.45);
+  shell.add(trim);
+  shell.updateMatrixWorld(true);
+  const structural = measureStructuralBounds(shell);
+  assert.ok(Math.abs((structural.maxY - structural.minY) - 10.1) < 1e-4);
+  assert.ok(Math.abs((structural.maxX - structural.minX) - 12) < 1e-4);
+});
+
+test('door and windows are measured from individual GLB mesh geometry', () => {
+  const shell = createShell({ rotation: 0 });
+  const structural = measureStructuralBounds(shell);
+  const [door] = measureFacadeDoors(shell, structural);
+  const windows = measureFacadeOpenings(shell, structural, door);
+  assert.ok(door);
+  assert.equal(door.side, 'front');
+  assert.ok(Math.abs(door.width - 1.2) < 0.03);
+  assert.ok(Math.abs(door.height - 2.1) < 0.03);
+  assert.equal(windows.length, 2);
+  assert.ok(windows.some((window) => window.side === 'front' &&
+    Math.abs(window.width - 1.4) < 0.03 && Math.abs(window.height - 1.13) < 0.08));
+  assert.ok(windows.some((window) => window.side === 'left' &&
+    Math.abs(window.width - 1.35) < 0.03));
+});
+
+test('interior uses measured floors, stair core, real door opening and real glazing', () => {
+  const shell = createShell({ rotation: 0 });
+  const { root, plan, doorPosition, outward } = buildBuildingInterior(shell, {
     id: 'house-test',
-    architecture: { storeys: 3, wallThickness: 0.18, slabThickness: 0.16 }
+    frontSide: 1,
+    architecture: {
+      storeys: 2,
+      floorLevels: [0, 3.1, 6.2],
+      wallThickness: 0.18,
+      slabThickness: 0.16
+    }
   });
-  assert.equal(plan.storeys, 3);
+  assert.equal(plan.storeys, 2);
+  assert.equal(plan.floorLevels.length, 3);
   assert.ok(plan.innerWidth < plan.width);
   assert.ok(plan.innerDepth < plan.depth);
-  assert.ok(plan.floorHeight >= 2.55 && plan.floorHeight <= 3.2);
+  assert.ok(plan.floorHeights.every((height) => height >= 2.25));
   assert.ok(plan.topY <= plan.bounds.maxY);
   assert.ok(root.getObjectByName('level-0-floor'));
   assert.ok(root.getObjectByName('stair-0-flight-a-step-1'));
-  assert.ok(root.getObjectByName('stair-1-flight-b-step-9'));
-  assert.ok(root.children.some((child) => child.name.includes('-glass')));
+  assert.ok(root.getObjectByName('stair-0-flight-b-step-10'));
+  assert.ok(root.children.some((child) => child.name.startsWith('level-0-front-window-') && child.name.endsWith('-glass')));
+  assert.ok(root.children.some((child) => child.name.startsWith('level-0-front-door-left-')));
   assert.ok(root.userData.collisionBoxes.length > 0);
+  assert.ok(doorPosition.z > 0);
+  assert.ok(outward.z > 0.99);
 });
 
-test('U-stair flights create continuous half-floor to full-floor height transitions', () => {
+test('U-stair flights create continuous half-floor and full-floor transitions', () => {
   const plan = deriveInteriorPlan({
     minX: -6, maxX: 6,
     minY: 0, maxY: 10.1,
     minZ: -4.5, maxZ: 4.5
   }, { storeys: 3 });
   const stair = plan.stair;
-  const low = getInteriorWalkHeight(plan, stair.laneOneX, stair.minZ, 0);
-  const half = getInteriorWalkHeight(plan, stair.laneOneX, stair.maxZ, 0);
-  const secondFlightStart = getInteriorWalkHeight(plan, stair.laneTwoX, stair.maxZ, half);
-  const upper = getInteriorWalkHeight(plan, stair.laneTwoX, stair.minZ, half);
+  const low = getInteriorWalkHeight(plan, stair.laneOneX, stair.maxZ, plan.baseY);
+  const half = getInteriorWalkHeight(plan, stair.laneOneX, stair.minZ, plan.baseY);
+  const secondFlightStart = getInteriorWalkHeight(plan, stair.laneTwoX, stair.minZ, half);
+  const upper = getInteriorWalkHeight(plan, stair.laneTwoX, stair.maxZ, half);
   assert.ok(Math.abs(low - plan.baseY) < 1e-5);
   assert.ok(Math.abs(half - (plan.baseY + plan.floorHeight / 2)) < 1e-5);
   assert.ok(Math.abs(secondFlightStart - half) < 1e-5);
   assert.ok(Math.abs(upper - (plan.baseY + plan.floorHeight)) < 1e-5);
 
-  const nextStoreyStart = getInteriorWalkHeight(plan, stair.laneOneX, stair.minZ, upper);
-  const nextStoreyLanding = getInteriorWalkHeight(plan, stair.laneOneX, stair.maxZ, upper);
+  const nextStoreyStart = getInteriorWalkHeight(plan, stair.laneOneX, stair.maxZ, upper);
+  const nextStoreyLanding = getInteriorWalkHeight(plan, stair.laneOneX, stair.minZ, upper);
   assert.ok(Math.abs(nextStoreyStart - upper) < 1e-5);
   assert.ok(Math.abs(nextStoreyLanding - (upper + plan.floorHeight / 2)) < 1e-5);
 });
 
-test('upper floor stair opening allows the stair lanes but blocks the open void', () => {
+test('reference house adapts stair count to each real storey while keeping safe risers', () => {
+  const plan = deriveInteriorPlan({
+    minX: -4.66, maxX: 4.66,
+    minY: 0, maxY: 12.4,
+    minZ: -2.313, maxZ: 2.313
+  }, {
+    storeys: 4,
+    floorLevels: [0, 3.30, 5.77, 8.28, 11.95],
+    wallThickness: 0.18,
+    slabThickness: 0.16,
+    targetRiserHeight: 0.16
+  });
+
+  assert.equal(plan.stair.levels.length, 3, 'only real floor-to-floor stair flights are generated');
+  assert.deepEqual(plan.stair.levels.map((level) => level.risersPerFlight), [10, 8, 8]);
+  for (const level of plan.stair.levels) {
+    assert.ok(level.riserHeight >= 0.145 && level.riserHeight <= 0.18);
+    assert.ok(level.treadDepth >= 0.23 && level.treadDepth <= 0.33);
+    assert.ok(level.comfort >= 0.56 && level.comfort <= 0.65);
+    assert.equal(level.totalRisers, level.risersPerFlight * 2);
+  }
+
+  assert.equal(plan.stair.run, 2.6);
+  assert.equal(plan.stair.frontClearance, 0.7);
+  assert.equal(plan.stair.landingDepth, 0.65);
+  assert.ok(plan.stair.frontClearance + plan.stair.run +
+    plan.stair.landingDepth + plan.stair.rearClearance <= plan.innerDepth + 1e-6);
+});
+
+test('upper floor void blocks walking outside stair flights and landing', () => {
   const plan = deriveInteriorPlan({
     minX: -6, maxX: 6,
     minY: 0, maxY: 10.1,
     minZ: -4.5, maxZ: 4.5
   }, { storeys: 3 });
   const opening = plan.stair.opening;
-  const floorY = plan.baseY + plan.floorHeight;
+  const floorY = plan.baseY + plan.floorLevels[1];
   const gapX = (plan.stair.laneOneX + plan.stair.laneTwoX) / 2;
   const stairZ = (plan.stair.minZ + plan.stair.maxZ) / 2;
   assert.equal(isInteriorPositionWalkable(plan, plan.stair.laneOneX, stairZ, floorY), true);
   assert.equal(isInteriorPositionWalkable(plan, gapX, stairZ, floorY), false);
   assert.ok(opening.maxX > opening.minX && opening.maxZ > opening.minZ);
-});
-
-
-test('named exterior GLB window and glass meshes are detected on their real facades', () => {
-  const shell = createShell();
-  const glass = new THREE.Mesh(
-    new THREE.BoxGeometry(1.4, 1.15, 0.06),
-    new THREE.MeshStandardMaterial({ name: 'Glass' })
-  );
-  glass.name = 'front-window-glazing';
-  glass.position.set(-2.5, 2.1, 4.45);
-  shell.add(glass);
-
-  const sideWindow = new THREE.Mesh(
-    new THREE.BoxGeometry(0.06, 1.2, 1.35),
-    new THREE.MeshStandardMaterial()
-  );
-  sideWindow.name = 'left-window-frame';
-  sideWindow.position.set(-5.95, 5.2, 0.8);
-  shell.add(sideWindow);
-  shell.updateMatrixWorld(true);
-
-  const openings = measureFacadeOpenings(shell);
-  assert.equal(openings.length, 2);
-  assert.ok(openings.some((opening) =>
-    opening.side === 'front' && Math.abs(opening.center + 2.5) < 0.05 &&
-    Math.abs(opening.width - 1.4) < 0.1
-  ));
-  assert.ok(openings.some((opening) =>
-    opening.side === 'left' && Math.abs(opening.center - 0.8) < 0.05
-  ));
 });

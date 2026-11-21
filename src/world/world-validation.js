@@ -58,15 +58,15 @@ export function validateWorldConfig(config, assetManifest) {
       if (!definition || !Object.values(definition).every(Number.isFinite)) add(`Street ${key} dimensions are invalid.`);
     }
     const lanes = config.street.laneMarkings;
-    if (!lanes || !['startX', 'endX', 'step', 'width', 'depth', 'y'].every((key) => Number.isFinite(lanes[key])) ||
-        lanes.startX > lanes.endX || !positive(lanes.step) || !positive(lanes.width) || !positive(lanes.depth)) {
+    if (lanes && (!['startX', 'endX', 'step', 'width', 'depth', 'y'].every((key) => Number.isFinite(lanes[key])) ||
+        lanes.startX > lanes.endX || !positive(lanes.step) || !positive(lanes.width) || !positive(lanes.depth))) {
       add('Street lane marking configuration is invalid.');
     }
     const crossing = config.street.crosswalks;
-    if (!crossing || !Array.isArray(crossing.centersX) || !crossing.centersX.every(Number.isFinite) ||
+    if (crossing && (!Array.isArray(crossing.centersX) || !crossing.centersX.every(Number.isFinite) ||
         !['firstOffset', 'lastOffset', 'spacing', 'width', 'depth', 'y'].every((key) => Number.isFinite(crossing[key])) ||
         crossing.firstOffset > crossing.lastOffset || !positive(crossing.spacing) ||
-        !positive(crossing.width) || !positive(crossing.depth)) {
+        !positive(crossing.width) || !positive(crossing.depth))) {
       add('Street crosswalk configuration is invalid.');
     }
     if (config.street.manhole && (!checkVector3(config.street.manhole.position, 'Manhole position') ||
@@ -161,6 +161,17 @@ export function validateWorldConfig(config, assetManifest) {
         if (!architecture || !Number.isInteger(architecture.storeys) ||
             architecture.storeys < 2 || architecture.storeys > 5) {
           add(`House "${item.id}" must declare 2–5 architectural storeys.`);
+        } else if (architecture.floorLevels !== undefined &&
+            (!Array.isArray(architecture.floorLevels) ||
+             architecture.floorLevels.length !== architecture.storeys + 1 ||
+             architecture.floorLevels[0] !== 0 ||
+             architecture.floorLevels.some((value, index, all) =>
+               !Number.isFinite(value) || (index > 0 && value - all[index - 1] < 2.25)))) {
+          add(`House "${item.id}" has invalid metric floor levels.`);
+        }
+        const targetRiserHeight = architecture?.targetRiserHeight ?? 0.16;
+        if (!Number.isFinite(targetRiserHeight) || targetRiserHeight < 0.14 || targetRiserHeight > 0.18) {
+          add(`House "${item.id}" has an invalid target stair riser height (0.14–0.18 m).`);
         }
       }
       if (collectionName === 'vehicles') {

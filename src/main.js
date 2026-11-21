@@ -189,31 +189,40 @@ function addAnimatedActor(key, height, position, path, speed, name, collision, a
 }
 
 function addStreetBase() {
-  const grass = makeMaterial(0x718267);
-  const asphalt = makeMaterial(0x444a4a, 0.98);
-  const concrete = makeMaterial(0xb9b6aa, 0.95);
-  const curb = makeMaterial(0x9e9e92, 0.96);
-  const marking = makeMaterial(0xd8d8cb, 0.95);
+  const grass = makeMaterial(0x78866f, 0.96);
+  const asphalt = makeMaterial(0x44494a, 0.98);
+  const concrete = makeMaterial(0xb9b8ae, 0.96);
+  const curb = makeMaterial(0x9a9a90, 0.97);
   const street = WORLD_CONFIG.street;
 
   addPlane(world, 'district-ground', ...street.ground.position, ...street.ground.size, grass);
   addPlane(world, 'street-road', ...street.road.position, ...street.road.size, asphalt);
 
   for (const side of [-1, 1]) {
-    addPlane(world, 'sidewalk-' + side, 0, street.sidewalk.y, side * street.sidewalk.z, street.sidewalk.width, street.sidewalk.depth, concrete);
-    addBox(world, 'curb-' + side, 0, street.curb.y, side * street.curb.z, street.curb.width, street.curb.height, street.curb.depth, curb);
+    addPlane(world, 'sidewalk-' + side, 0, street.sidewalk.y,
+      side * street.sidewalk.z, street.sidewalk.width, street.sidewalk.depth, concrete);
+    addBox(world, 'curb-' + side, 0, street.curb.y,
+      side * street.curb.z, street.curb.width, street.curb.height, street.curb.depth, curb);
   }
 
+  // Markings and crossings are added only with a real junction or traffic plan.
   const lanes = street.laneMarkings;
-  for (let x = lanes.startX; x <= lanes.endX; x += lanes.step) {
-    addPlane(world, 'lane-dash-' + x, x, lanes.y, 0, lanes.width, lanes.depth, marking);
+  if (lanes) {
+    const marking = makeMaterial(0xd8d8cb, 0.95);
+    for (let x = lanes.startX; x <= lanes.endX; x += lanes.step) {
+      addPlane(world, 'lane-dash-' + x, x, lanes.y, 0, lanes.width, lanes.depth, marking);
+    }
   }
 
   const crossing = street.crosswalks;
-  for (const centerX of crossing.centersX) {
-    for (let offset = crossing.firstOffset; offset <= crossing.lastOffset; offset += 1) {
-      addPlane(world, 'crosswalk-' + centerX + '-' + offset, centerX + offset * crossing.spacing,
-        crossing.y, 0, crossing.width, crossing.depth, marking);
+  if (crossing?.centersX?.length) {
+    const marking = makeMaterial(0xd8d8cb, 0.95);
+    for (const centerX of crossing.centersX) {
+      for (let offset = crossing.firstOffset; offset <= crossing.lastOffset; offset += 1) {
+        addPlane(world, 'crosswalk-' + centerX + '-' + offset,
+          centerX + offset * crossing.spacing, crossing.y, 0,
+          crossing.width, crossing.depth, marking);
+      }
     }
   }
 
@@ -229,50 +238,55 @@ function addStreetBase() {
     world.add(manhole);
   }
 }
-
 function addEntryWalkway(house) {
   const config = WORLD_CONFIG.street.entryPath;
   const sidewalk = WORLD_CONFIG.street.sidewalk;
   const normal = house.doorNormal.clone();
   if (Math.abs(normal.z) < 0.75) return;
 
-  // The house sits on the same signed side as its sidewalk. The door normal
-  // must point toward that sidewalk, not toward the opposite side of the road.
   const side = Math.sign(house.center.z) || -Math.sign(normal.z);
   const sidewalkEdge = side * (sidewalk.z + sidewalk.depth / 2 - 0.06);
   const distance = (sidewalkEdge - house.doorPosition.z) / normal.z;
-  if (!Number.isFinite(distance) || distance <= config.thresholdDepth + 0.15) return;
+  if (!Number.isFinite(distance) || distance <= 0.2) return;
 
   const yaw = Math.atan2(normal.x, normal.z);
-  const pathStart = house.doorPosition.clone().addScaledVector(normal, config.thresholdDepth / 2);
+  const material = makeMaterial(0x9f9e95, 0.96);
+  const entryRise = Math.max(0, house.doorPosition.y);
+  const stepDepth = 0.32;
+  const stepCount = entryRise > 0.12 ? 2 : 0;
+  const riser = stepCount ? entryRise / stepCount : 0;
+
+  // Two equal, level risers connect the authored door sill to the public path.
+  // The higher step is nearest the door; the lower step meets the sidewalk path.
+  for (let index = 0; index < stepCount; index += 1) {
+    const bottom = index * riser;
+    const step = new THREE.Mesh(
+      new THREE.BoxGeometry(config.width + 0.18, riser, stepDepth),
+      material
+    );
+    step.name = house.id + '-entry-step-' + (index + 1);
+    step.position.copy(house.doorPosition).addScaledVector(normal, 0.48 - index * 0.32);
+    step.position.y = bottom + riser / 2;
+    step.rotation.y = yaw;
+    step.receiveShadow = true;
+    world.add(step);
+  }
+  const pathStart = house.doorPosition.clone().addScaledVector(normal, 0.72);
   const pathEnd = house.doorPosition.clone().addScaledVector(normal, distance);
   const pathLength = pathStart.distanceTo(pathEnd);
-  const material = makeMaterial(0x99998f, 0.94);
-  const landing = new THREE.Mesh(
-    new THREE.BoxGeometry(config.width + 0.45, config.thickness, config.thresholdDepth),
-    material
-  );
-  landing.name = `${house.id}-entry-landing`;
-  landing.position.copy(house.doorPosition).addScaledVector(normal, config.thresholdDepth / 2);
-  landing.position.y = config.thickness / 2;
-  landing.rotation.y = yaw;
-  landing.receiveShadow = true;
-  world.add(landing);
-
   if (pathLength > 0.1) {
     const path = new THREE.Mesh(
       new THREE.BoxGeometry(config.width, config.thickness, pathLength),
       material
     );
-    path.name = `${house.id}-entry-walkway`;
+    path.name = house.id + '-entry-walkway';
     path.position.copy(pathStart).add(pathEnd).multiplyScalar(0.5);
-    path.position.y = config.thickness / 2;
+    path.position.y = sidewalk.y - config.thickness / 2;
     path.rotation.y = yaw;
     path.receiveShadow = true;
     world.add(path);
   }
 }
-
 async function addBuilding(definition) {
   const { id, asset, position, rotationY = 0, height, role, frontSide, collision } = definition;
   const { root } = await createAsset(asset, {
@@ -543,8 +557,8 @@ function addTrees() {
 }
 
 function buildBackdrop() {
-  const low = makeMaterial(0x8c9386, 0.95);
-  addPlane(world, 'far-grass', 0, -0.2, 0, 150, 100, low);
+  const low = makeMaterial(0x78866f, 0.96);
+  addPlane(world, 'settlement-ground-extension', 0, -0.115, -1.4, 40, 30, low);
 }
 
 function getMovingActorColliders() {

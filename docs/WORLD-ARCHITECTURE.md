@@ -1,84 +1,73 @@
 # District 14: architektura světa
 
-**Aktuální referenční rozsah:** jedna hlavní ulice, jedna parcela, jeden dům  
-**Runtime:** Three.js + Vite  
-**Autorovací jednotka:** metr  
-**Aktivní režim:** Free Play / Sandbox
+**Engine:** Three.js + Vite  
+**Jednotka:** metr  
+**Autorovací rozsah:** jedna ulice, jedna parcela, jeden referenční dům  
+**Režim:** Free Play / Sandbox
 
-Tento soubor popisuje odpovědnosti modulů a pravidla architektury. Detailní stavební rozměry, geometrie, ulice, schodiště, okna, skla, vstupy a akceptační podmínky jsou vedeny v [Referenční ulici a domě](REFERENCE-HOUSE-AND-STREET.md).
+## Architektonická pravidla
 
-## Základní zásady
+1. Vnější GLB model definuje fyzickou obálku a měřítko interiéru.
+2. Konstrukční těleso se měří odděleně od okenních rámů, říms a dekorativních přesahů.
+3. Dveře, okna a sklo se čtou z konkrétních mesh/material částí.
+4. Podlaží mohou mít rozdílné výšky. Jejich úrovně jsou explicitní data v metrech.
+5. Schodiště, podesta a otvor v desce sdílejí jeden parametrický plán.
+6. Ulice, parcela, vstup a přístupová cesta jsou jeden prostorový celek.
+7. Chybějící stavební metadata se nesmějí nahrazovat náhodně umístěnou geometrií.
+8. Obsah roste ručně a v pořadí; procedurální generátor čtvrti zatím není součástí projektu.
 
-1. **Vnější model určuje měřítko.** Interiér se nesmí kreslit od oka. Šířka, hloubka a výška vznikají z naměřené geometrie GLB po aplikaci transformací.
-2. **Ulice a dům jsou jeden prostorový celek.** Vstup, podesta, přístupová cesta, chodník a parcela sdílejí metrické souřadnice.
-3. **Nejdříve konstrukce, potom vybavení.** Podlahy, stěny, příčky, schody, dveřní otvory, okna a zasklení mají přednost před nábytkem a dekoracemi.
-4. **Obsah je hierarchický.** District → Street → Block (pokud ho vymezují ulice) → Parcel → Building → Storey → Room. Schodišťové jádro je společná součást budovy.
-5. **Každý obsahový prvek má stabilní ID.** Entita nesmí existovat jen jako volně vložený mesh bez datového záznamu.
-6. **Validace před vytvořením scény.** Chybějící model, duplicitní ID, neplatná poloha nebo nesoulad hierarchie musí selhat před spawnováním světa.
-7. **Růst ručně a kontrolovaně.** Druhá parcela a další ulice se přidají až po ověření reference. Procedurální generátor města zatím není cílem.
-
-## Současný systém a odpovědnosti
+## Moduly
 
 | Modul | Odpovědnost |
 |---|---|
-| src/world/world-config.js | hlavní uliční profil, domy, umístění, parametry architektury a hierarchie |
-| src/world/world-validation.js | validační pravidla entit, transformací, modelů a stavebních parametrů |
-| src/world/world-hierarchy.js | typy uzlů, povolené vztahy rodič/potomek, unikátní ID a návaznost domů |
-| src/world/building-architecture.js | měření obálky GLB, rozpoznání oken, dispozice, konstrukční desky, stěny, schody a skla |
-| src/main.js | načtení manifestu, vytvoření ulice a domů, kolize, ovládání a přechod ven/dovnitř |
-| tests/ | regresní testy konfigurace, hierarchie, geometrie, schodů, oken, modelů a kolizí |
+| src/world/world-config.js | světová data, uliční profil, budovy, patra, hierarchie |
+| src/world/world-validation.js | validace modelů, transformací, ID a metrických úrovní |
+| src/world/world-hierarchy.js | povolené vztahy district/street/parcel/building/storey/room |
+| src/world/building-architecture.js | měření GLB obálky a fasád, půdorys, zasklení, dveře, desky, schodiště |
+| src/main.js | načtení assetů, ulice, domy, vstup, pohyb a přechod ven/dovnitř |
+| tests/ | regresní testy metrických dat, fasád, schodů, přístupu a hierarchie |
 
-## Datový kontrakt budovy
+## Měření modelu
 
-Každá stavba musí mít:
-- unikátní ID;
-- klíč assetu existující v lokálním manifestu;
-- polohu v metrech;
-- cílovou normalizovanou výšku;
-- natočení;
-- roli building/house;
-- orientaci přední fasády;
-- počet podlaží a konstrukční parametry;
-- explicitní kolizní profil;
-- odpovídající uzel v settlement hierarchii.
+measureBuildingBounds vytváří plnou obálku v lokálním rámci domu po aplikaci transformací potomků. measureStructuralBounds vybírá dominantní konstrukční mesh, aby dekorativní římsa nepřifoukla půdorys.
 
-Rozměry vnitřního půdorysu se odvozují z reálné geometrie. Pokud dům nemá dostatečný prostor pro schodiště a průchozí chodbu, generátor má stavbu odmítnout, ne rozšiřovat interiér za fasádu.
+Fasádní okna vznikají z oddělených trojúhelníkových komponent skleněných meshů. Komponenty stejného okna se slučují pouze při shodné ose, rovině a šířce a při malé svislé mezeře. Materiál dveří se měří zvlášť; z jeho geometrie se získá střed, šířka, výška i výška prahu.
 
-## Lifecycle scény
+## Metrický plán
 
-1. Načíst lokální manifest.
-2. Ověřit světovou konfiguraci a hierarchii.
-3. Vytvořit základní uliční geometrii.
-4. Načíst vnější shell referenčního domu.
-5. Změřit jeho rozměry v lokálním rámci.
-6. Vygenerovat vnitřní konstrukční geometrii a návazné vstupní body.
-7. Zaregistrovat kolize a interakci.
-8. Teprve poté zobrazit startovní obrazovku.
+Budova ukládá explicitní architecture.floorLevels. Hodnoty jsou relativní k měřenému vstupnímu prahu a jsou přísně rostoucí. Výšky stupňů se počítají z konkrétního rozdílu mezi dvěma sousedními úrovněmi. Počet stoupání na rameno se adaptuje podle cílové výšky 0,16 m, zatímco šířka jádra, délka běhu a mezipodesta zůstávají konstantní.
 
-## Rozšíření bez přepisování světa
+Plán obsahuje:
+- konstrukční vnitřní obálku;
+- otvor skutečného vstupu;
+- skutečná okna na konkrétních fasádách;
+- schodišťové jádro a šířky ramen;
+- mezipodestu a otvory stropních desek;
+- průchozí hranice a kolizní obdélníky místností.
 
-Nová parcela přidá vlastní budovu a hierarchický uzel. Existující dům se nesmí automaticky přemísťovat. Nová ulice vyžaduje samostatnou geometrii komunikace, chodníky, obruby, napojení a validaci křižovatky; pouhé přidání uzlu street do stromu ji nevytvoří.
+## Životní cyklus scény
 
-Dlouhodobě lze oddělit:
-- street network a křižovatky;
-- parcel footprinty a stavební čáry;
-- building shells a interior plans;
-- společné prostory a bytové jednotky;
-- prostorový index a načítání zón;
-- vizualizační/debug vrstvu pro měřítko, kolize, ID a dveřní kotvy.
+1. Načíst lokální manifest GLB.
+2. Validovat světovou konfiguraci a hierarchii.
+3. Vytvořit krátký uliční profil, chodníky a obruby.
+4. Načíst referenční vnější model.
+5. Změřit celkovou i konstrukční obálku.
+6. Změřit dveřní a skleněné fasádní prvky.
+7. Odvodit podlaží a vygenerovat vnitřní konstrukční geometrii.
+8. Zaregistrovat kolize, vstupní kotvu a pěší přístup.
+9. Zobrazit startovní obrazovku.
 
-Tyto systémy jsou návrhové hranice pro budoucnost, nikoli tvrzení, že už jsou implementované.
+## Rozšiřování
 
-## Ověření
+Druhá parcela se přidá pod street-main jako samostatný uzel. Budova dostane svůj vlastní asset, transformaci, měřítko, dveřní metadata a úrovně podlaží. Existující dům se při přidání další parcely nepřepočítává ani nepřemisťuje.
 
-Poslední kontrola PR #4: 42/42 automatických testů prošlo, produkční build i upload artefaktu uspěly. Deploy job byl u pull requestu přeskočen podle workflow pravidel.
+Nová ulice potřebuje skutečnou geometrii vozovky, obrub, přechodů a napojení. Samotný hierarchický uzel nestačí k vytvoření křižovatky. Blok existuje jen tehdy, pokud ho ulice opravdu uzavírají.
 
-Automatické testy neprokazují vizuální shodu konkrétního GLB domu s vygenerovaným interiérem. Ruční kontrola vstupních dveří, oken, schodů a napojení na chodník zůstává nutná. Stav a akceptační seznam jsou průběžně vedené v [referenční specifikaci](REFERENCE-HOUSE-AND-STREET.md).
+## Mimo rozsah
 
-## Mimo aktuální rozsah
+- Rules World, mise, ekonomika a postup;
+- vybavení interiérů a dekorace;
+- procedurální generování čtvrti;
+- doprava, NPC a veřejný mobiliář.
 
-- Žádný Rules World.
-- Žádné mise, questy, skóre, ekonomika ani postup.
-- Žádný multiplayer.
-- Žádné vybavení interiéru v referenční fázi.
-- Žádný procedurální generátor čtvrti před ověřením ručně vytvořených parcel.
+Automatické testy ověřují geometrii a data. Vizuální shoda konkrétního GLB, skel, schodišť a uličního vstupu vyžaduje samostatný průchod ve WebGL.
