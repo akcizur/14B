@@ -99,7 +99,7 @@ Vstup se měří z materiálu **door_white**. Střed, šířka, výška a práh 
 - směr normály dveří;
 - přístupovou cestu a výškový přechod od chodníku.
 
-Zvýšený práh se připojuje dvěma schody stejné výšky k venkovní cestě. Vnitřní podlaha začíná v úrovni skutečného prahu. Nejde o fyzické otevírání dveřního křídla; vstup stále přepíná vnější a vnitřní geometrii.
+Zvýšený práh se připojuje dvěma schody stejné výšky k venkovní cestě. Pěší cesta má horní povrch ve stejné výšce jako chodník; její hrana se dotýká prvního stupně bez mezery. Vnitřní podlaha začíná v úrovni skutečného prahu. Nejde o fyzické otevírání dveřního křídla; vstup stále přepíná vnější a vnitřní geometrii.
 
 ## 6. Ulice a parcela
 
@@ -108,10 +108,10 @@ První ulice je klidná obytná komunikace, nikoli nedokončená městská kři�
 | Prvek | Rozměr |
 |---|---:|
 | Vozovka | 6,0 m |
-| Chodník na každé straně | 1,6 m |
-| Obruba | 0,20 m široká × 0,14 m vysoká |
+| Chodník na každé straně | 1,6 m (šířka profilu 36 m podél ulice) |
+| Obruba | 0,20 m široká × 0,14 m vysoká, přesně navazuje na chodník |
 | Délka prvního uličního úseku | 36 m |
-| Šířka pěší přístupové cesty | 1,35 m |
+| Šířka pěší přístupové cesty | 1,80 m |
 | Odsazení domu za chodníkem | přibližně 1,3 m |
 
 Ulice nemá středovou čáru, izolovaný přechod ani křižovatku, která nikam nepokračuje. Přechod se přidá až tam, kde bude napojená druhá ulice nebo doložený pěší uzel.
