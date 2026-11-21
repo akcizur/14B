@@ -23,9 +23,9 @@ export const WORLD_CONFIG = {
   street: {
     ground: { position: [0, -0.11, -1.4], size: [38, 28] },
     road: { position: [0, -0.025, 0], size: [36, 6] },
-    sidewalk: { z: 4.0, width: 34, depth: 1.6, y: 0.015 },
-    curb: { z: 3.08, width: 36, depth: 0.2, height: 0.14, y: -0.02 },
-    entryPath: { width: 1.35, thickness: 0.07, thresholdDepth: 0.55 }
+    sidewalk: { z: 4.0, width: 36, depth: 1.6, y: 0.015 },
+    curb: { z: 3.1, width: 36, depth: 0.2, height: 0.14, y: -0.02 },
+    entryPath: { width: 1.8, thickness: 0.07, thresholdDepth: 0.64 }
   },
 
   buildings: [
