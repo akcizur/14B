@@ -245,7 +245,7 @@ export function measureFacadeOpenings(buildingRoot, structure = measureStructura
       const verticalGap = Math.max(0, item.minY - candidate.maxY, candidate.minY - item.maxY);
       return candidate.side === item.side &&
         Math.abs(candidate.centerAxis - item.centerAxis) < 0.045 &&
-        Math.abs(candidate.plane - item.plane) < 0.045 &&
+        Math.abs(candidate.plane - item.plane) < 0.085 &&
         Math.abs((candidate.maxU - candidate.minU) - (item.maxU - item.minU)) < 0.09 &&
         verticalGap < 0.11;
     });
