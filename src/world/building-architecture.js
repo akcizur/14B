@@ -208,8 +208,9 @@ export function measureFacadeOpenings(buildingRoot, structure = measureStructura
     if (!object.isMesh || !object.geometry) return;
     const names = meshMaterialNames(object);
     const hasDedicatedGlass = names.some((name) => /(window.?glass|glazing)/i.test(name));
+    const namedGlazing = /(window.?glass|glazing)/i.test(object.name || '');
     const unnamedTestFrame = names.length === 0 && /window/i.test(object.name || '');
-    if (!hasDedicatedGlass && !unnamedTestFrame) return;
+    if (!hasDedicatedGlass && !namedGlazing && !unnamedTestFrame) return;
 
     for (const vertexIds of getTriangleComponents(object.geometry)) {
       const box = localComponentBox(object, vertexIds, inverseRigid);
