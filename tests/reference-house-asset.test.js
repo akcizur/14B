@@ -22,7 +22,8 @@ test('reference GLB exposes distinct shell, glazing and entrance materials', () 
   assert.ok(names.has('brick_shadeGreen'));
   assert.ok(names.has('window_glass'));
   assert.ok(names.has('door_white'));
-  assert.ok(gltf.meshes?.length >= 3);
+  assert.equal(gltf.meshes?.length, 1, 'the supplied GLB packs the entire building into one mesh');
+  assert.equal(gltf.meshes[0].primitives.length, 7, 'the building mesh uses seven material groups');
   assert.ok(gltf.nodes?.some((node) => Number.isInteger(node.mesh)));
 });
 
@@ -35,8 +36,14 @@ test('reference GLB glass bounds span the ground and upper facade', () => {
   assert.ok(glassPrimitive);
   const accessor = gltf.accessors?.[glassPrimitive.attributes?.POSITION];
   assert.ok(accessor?.min && accessor?.max);
-  assert.ok(accessor.max[1] - accessor.min[1] > 2.5,
-    'the source glass geometry must span several storey bands');
-  assert.ok(accessor.max[0] - accessor.min[0] > 1.8,
-    'the source glass geometry must include the separated facade windows');
+  const meshNode = gltf.nodes.find((node) => node.mesh === gltf.meshes.indexOf(
+    gltf.meshes.find((mesh) => mesh.primitives.includes(glassPrimitive))
+  ));
+  assert.ok(meshNode?.scale, 'the GLB must retain the authored mesh transform');
+  const scale = Math.max(...meshNode.scale);
+  // The source node is rotated 90 degrees around X: source Z is facade height.
+  assert.ok((accessor.max[2] - accessor.min[2]) * scale > 2.5,
+    'the transformed glass geometry must span several storey bands');
+  assert.ok((accessor.max[0] - accessor.min[0]) * scale > 1.8,
+    'the transformed glass geometry must include separated facade windows');
 });
