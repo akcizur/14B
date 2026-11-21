@@ -166,3 +166,11 @@ Návrh se nepovažuje za schválený, dokud:
 První vizuální prototyp zobrazuje dvě výškově oddělené vodicí linie a společné boční vodítko koridoru nad osou vozovky. Značky jsou rozmístěny rovnoměrně po celé délce segmentu včetně obou konců. Parametry pocházejí z `WORLD_CONFIG.airLayer`.
 
 **Prototyp není funkční dopravní systém.** Neobsahuje vozidla, fyziku, navigaci, kolizní obálku, vyhýbání ani řízení směru. Výška 18/22 m, šířka 6 m a vodítka jsou pracovní návrhové hodnoty. Před jejich potvrzením je potřeba vytvořit 1:1 řez s reálnou obálkou budovy, střešními prvky a modelem flycaru.
+
+
+## Habitatový koncept a ochranný prstenec (nové rozhodnutí 2026-11-21)
+
+World design se nově rozvíjí jako umělý space habitat chráněný masivní prstencovou strukturou inspirovanou Starship. Vnitřní prostor má umělou atmosféru; vnější prostor je vesmír. Městský půdorys obsahuje přesně tři definované ulice: dominantní dlouhou Main Street a dvě podřízené vedlejší ulice. Nezakládat další street grid.
+
+
+Toto je koncepční rozhodnutí, nikoli hotová geometrie. Tvar a měřítko prstence, masterplan tří ulic, atmosférický/light systém a letové koridory čekají na návrh a validaci. Podrobnosti: [DISTRICT-14-SPACE-HABITAT.md](./DISTRICT-14-SPACE-HABITAT.md).
