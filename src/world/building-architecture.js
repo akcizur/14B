@@ -372,7 +372,7 @@ export function deriveInteriorPlan(bounds, architecture = {}, frontSide = 1, doo
   };
   const averageFloorHeight = floorHeights.reduce((sum, value) => sum + value, 0) / storeys;
   const targetRiserHeight = clamp(architecture.targetRiserHeight ?? 0.16, 0.14, 0.18);
-  const stairLevels = floorHeights.map((floorHeight) => {
+  const stairLevels = floorHeights.slice(0, -1).map((floorHeight) => {
     const risersPerFlight = Math.max(6, Math.round(floorHeight / (2 * targetRiserHeight)));
     const totalRisers = risersPerFlight * 2;
     const riserHeight = floorHeight / totalRisers;
